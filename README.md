@@ -1,0 +1,1 @@
+# cloud18-templates
