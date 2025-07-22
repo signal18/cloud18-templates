@@ -1,0 +1,59 @@
+app-host = "{{app.name}}"
+app-port = "9000"
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-ha-topology = "{{config.provAppHaTopology}}"
+prov-app-memory = "{{config.provAppMemory}}"
+prov-app-docker-cmd = "server --console-address \":9001\" /data"
+prov-app-docker-img = "quay.io/minio/minio"
+
+[deployment]
+
+  [deployment.Mutex]
+
+  [[deployment.paths]]
+    dockerpath = "/data"
+    name = "path-volume-minio-data"
+    parentname = ""
+    srcname = "minio-data"
+    srcpath = "data/"
+    srctype = "volume"
+    volumename = "minio-data"
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "9001"
+    primary = true
+    protocol = "https"
+
+  [deployment.storages]
+
+    [[deployment.storages.volumes]]
+      name = "minio-data"
+      poolname = "drbd"
+      volumedir = "data"
+
+  [[deployment.variables]]
+    locked = false
+    name = "MINIO_ROOT_PASSWORD"
+    type = "secret"
+    value = "{{ROOT_PASSWORD}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "MINIO_ROOT_USER"
+    type = "env"
+    value = "admin"
+
+  [[deployment.variables]]
+    locked = false
+    name = "MINIO_REGION"
+    type = "env"
+    value = "{{REGION}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "MINIO_BROWSER_REDIRECT_URL"
+    type = "env"
+    value = "https://{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
