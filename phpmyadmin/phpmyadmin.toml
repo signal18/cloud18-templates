@@ -1,0 +1,32 @@
+app-host = "{{app.name}}"
+app-port = "80"
+prov-app-agents = "s18-fr-5,s18-fr-4"
+prov-app-cpu-cores = "1"
+prov-app-disk-size = "4"
+prov-app-docker-img = "phpmyadmin:latest"
+prov-app-ha-topology = "flex"
+prov-app-memory = "1024"
+
+[deployment]
+
+  [deployment.Mutex]
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "80"
+    primary = true
+    protocol = "https"
+
+  [deployment.storages]
+
+  [[deployment.variables]]
+    locked = false
+    name = "PMA_HOSTS"
+    type = "env"
+    value = "prx1,prx2"
+
+  [[deployment.variables]]
+    locked = false
+    name = "PMA_ABSOLUTE_URI"
+    type = "env"
+    value = "https://{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io/"
