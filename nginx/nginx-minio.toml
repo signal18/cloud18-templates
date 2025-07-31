@@ -1,0 +1,75 @@
+prov-app-docker-img = "nginx:1.27"
+prov-app-ha-topology = "flex"
+
+[deployment]
+  [deployment.Mutex]
+  [[deployment.paths]]
+    dockerpath = "/etc/nginx/conf.d/default.conf"
+    name = "path-git-cloud18-git-sample-config"
+    parentname = ""
+    srcname = "cloud18-git-sample-config"
+    srcpath = "etc/cloud18-git-sample-config/nginx/nginx.conf"
+    srctype = "git"
+    volumename = "local-config-directory"
+
+  [[deployment.paths]]
+    dockerpath = "/usr/share/nginx/html/"
+    name = "path-git-cloud18-git-sample-data"
+    parentname = ""
+    srcname = "cloud18-git-sample-data"
+    srcpath = "var/cloud18-git-sample-data/nginx/"
+    srctype = "git"
+    volumename = "local-data-directory"
+
+  [[deployment.paths]]
+    dockerpath = "/usr/share/nginx/html/pictures/"
+    name = "path-s3-minio-pictures"
+    parentname = "path-git-cloud18-git-sample-data"
+    srcname = "s3-minio-pictures"
+    srcpath = "mnt/s3-minio-pictures/"
+    srctype = "s3"
+    volumename = "local-mnt-directory"
+
+  [deployment.storages]
+    [[deployment.storages.git-clones]]
+      branch = "main"
+      name = "cloud18-git-sample-data"
+      repo = "github.com/signal18/cloud18-template-code.git"
+      volumedir = "var/cloud18-git-sample-data"
+      volumename = "local-data-directory"
+
+    [[deployment.storages.git-clones]]
+      branch = "main"
+      name = "cloud18-git-sample-config"
+      repo = "github.com/signal18/cloud18-template-config.git"
+      volumedir = "etc/cloud18-git-sample-config"
+      volumename = "local-config-directory"
+
+    [[deployment.storages.s3-mounts]]
+      accesskey = "admin"
+      bucket = "pictures"
+      endpoint = "minio.dev2.svc.cloud18:9000"
+      name = "s3-minio-pictures"
+      secretkey = "minIO4repman"
+      volumedir = "mnt/s3-minio-pictures"
+      volumename = "local-mnt-directory"
+
+    [[deployment.storages.volumes]]
+      name = "local-data-directory"
+      poolname = "tank"
+      volumedir = "var"
+
+    [[deployment.storages.volumes]]
+      name = "local-config-directory"
+      poolname = "tank"
+      volumedir = "etc"
+
+    [[deployment.storages.volumes]]
+      name = "local-log-directory"
+      poolname = "tank"
+      volumedir = "log"
+
+    [[deployment.storages.volumes]]
+      name = "local-mnt-directory"
+      poolname = "tank"
+      volumedir = "mnt"
