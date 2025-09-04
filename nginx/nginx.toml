@@ -1,0 +1,59 @@
+[deployment]
+  [[deployment.paths]]
+    dockerpath = "/etc/nginx/conf.d/default.conf"
+    name = "path-git-cloud18-git-sample-config"
+    parentname = ""
+    srcname = "cloud18-git-sample-config"
+    srcpath = "etc/cloud18-git-sample-config/nginx/nginx.conf"
+    srctype = "git"
+    volumename = "local-config-directory"
+
+  [[deployment.paths]]
+    dockerpath = "/usr/share/nginx/html/"
+    name = "path-git-cloud18-git-sample-data"
+    parentname = ""
+    srcname = "cloud18-git-sample-data"
+    srcpath = "var/cloud18-git-sample-data/nginx/"
+    srctype = "git"
+    volumename = "local-data-directory"
+
+  [deployment.storages]
+    [[deployment.storages.git-clones]]
+      branch = "main"
+      name = "cloud18-git-sample-data"
+      pass = ""
+      repo = "github.com/signal18/cloud18-template-code.git"
+      timeout = 0
+      user = ""
+      volumedir = "var/cloud18-git-sample-data"
+      volumename = "local-data-directory"
+
+    [[deployment.storages.git-clones]]
+      branch = "main"
+      name = "cloud18-git-sample-config"
+      pass = ""
+      repo = "github.com/signal18/cloud18-template-config.git"
+      timeout = 0
+      user = ""
+      volumedir = "etc/cloud18-git-sample-config"
+      volumename = "local-config-directory"
+
+    [[deployment.storages.volumes]]
+      name = "local-data-directory"
+      poolname = "tank"
+      volumedir = "var"
+
+    [[deployment.storages.volumes]]
+      name = "local-config-directory"
+      poolname = "tank"
+      volumedir = "etc"
+
+    [[deployment.storages.volumes]]
+      name = "local-log-directory"
+      poolname = "tank"
+      volumedir = "log"
+
+    [[deployment.storages.volumes]]
+      name = "local-mnt-directory"
+      poolname = "tank"
+      volumedir = "mnt"
