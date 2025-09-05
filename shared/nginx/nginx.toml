@@ -1,3 +1,6 @@
+prov-app-docker-img = "nginx:1.27"
+prov-app-ha-topology = "flex"
+
 [deployment]
   [[deployment.paths]]
     dockerpath = "/etc/nginx/conf.d/default.conf"
