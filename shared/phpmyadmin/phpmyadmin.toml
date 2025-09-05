@@ -23,7 +23,7 @@ prov-app-memory = "1024"
     locked = false
     name = "PMA_HOSTS"
     type = "env"
-    value = "{{proxies.#.host}}"
+    value = "{{proxies.#.name}}"
 
   [[deployment.variables]]
     locked = false
