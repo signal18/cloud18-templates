@@ -1,0 +1,38 @@
+app-host = "{{app.name}}"
+app-port = "80"
+prov-app-docker-img = "dolibarr/dolibarr:develop"
+prov-app-ha-topology = "flex"
+
+[deployment]
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+
+  [deployment.storages]
+
+    [[deployment.storages.volumes]]
+      name = "dolibarr-custom"
+      poolname = "tank"
+      volumedir = "dolibarr_custom"
+
+    [[deployment.storages.volumes]]
+      name = "dolibarr-documents"
+      poolname = "tank"
+      volumedir = "dolibarr_documents"
+
+  [[deployment.paths]]
+    name = "path-volume-dolibarr-custom"
+    dockerpath = "/var/www/html/custom"
+    srctype = "volume"
+    srcname = "dolibarr-custom"
+    srcpath = "/"
+
+  [[deployment.paths]]
+    name = "path-volume-dolibarr-documents"
+    dockerpath = "/var/www/documents"
+    srctype = "volume"
+    srcname = "dolibarr-documents"
+    srcpath = "/"
