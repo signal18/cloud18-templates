@@ -23,6 +23,72 @@ prov-app-ha-topology = "flex"
       poolname = "tank"
       volumedir = "dolibarr_documents"
 
+  [[deployment.variables]]
+    locked = false
+    name = "DOLI_INIT_DEMO"
+    type = "env"
+    value = "0"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLI_DB_HOST"
+    type = "env"
+    value = "{{proxies.0.name}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLI_DB_NAME"
+    type = "env"
+    value = "dolidb"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLI_DB_USER"
+    type = "env"
+    value = "dolidbuser"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLI_DB_PASSWORD"
+    type = "secret"
+    value = "dolidbpass"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLI_URL_ROOT"
+    type = "env"
+    value = "http://0.0.0.0"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLI_ADMIN_LOGIN"
+    type = "env"
+    value = "admin"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLI_ADMIN_PASSWORD"
+    type = "secret"
+    value = "admin"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLI_CRON"
+    type = "env"
+    value = "0"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLI_CRON_KEY"
+    type = "secret"
+    value = "mycronsecurekey"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLI_COMPANY_NAME"
+    type = "env"
+    value = "MyBigCompany"
+
   [[deployment.paths]]
     name = "path-volume-dolibarr-custom"
     dockerpath = "/var/www/html/custom"
