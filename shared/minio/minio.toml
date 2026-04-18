@@ -3,17 +3,17 @@ app-port = "9000"
 prov-app-agents = "{{config.provAppAgents}}"
 prov-app-cpu-cores = "{{config.provAppCpuCores}}"
 prov-app-disk-size = "{{config.provAppDiskSize}}"
-prov-app-ha-topology = "{{config.provAppHaTopology}}"
-prov-app-memory = "{{config.provAppMemory}}"
 prov-app-docker-cmd = "server --console-address \":9001\" /data"
 prov-app-docker-img = "quay.io/minio/minio"
+prov-app-ha-topology = "{{config.provAppHaTopology}}"
+prov-app-memory = "{{config.provAppMemory}}"
 
 [deployment]
-
   [deployment.Mutex]
 
   [[deployment.paths]]
     dockerpath = "/data"
+    level = 0
     name = "path-volume-minio-data"
     parentname = ""
     srcname = "minio-data"
@@ -26,7 +26,6 @@ prov-app-docker-img = "quay.io/minio/minio"
     port = "9001"
     primary = true
     protocol = "https"
-
   [deployment.storages]
 
     [[deployment.storages.volumes]]

@@ -2,8 +2,10 @@ prov-app-docker-img = "nginx:1.27"
 prov-app-ha-topology = "flex"
 
 [deployment]
+
   [[deployment.paths]]
     dockerpath = "/etc/nginx/conf.d/default.conf"
+    level = 0
     name = "path-git-cloud18-git-sample-config"
     parentname = ""
     srcname = "cloud18-git-sample-config"
@@ -13,14 +15,15 @@ prov-app-ha-topology = "flex"
 
   [[deployment.paths]]
     dockerpath = "/usr/share/nginx/html/"
+    level = 0
     name = "path-git-cloud18-git-sample-data"
     parentname = ""
     srcname = "cloud18-git-sample-data"
     srcpath = "var/cloud18-git-sample-data/nginx/"
     srctype = "git"
     volumename = "local-data-directory"
-
   [deployment.storages]
+
     [[deployment.storages.git-clones]]
       branch = "main"
       name = "cloud18-git-sample-data"

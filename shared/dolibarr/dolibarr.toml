@@ -5,12 +5,27 @@ prov-app-ha-topology = "flex"
 
 [deployment]
 
+  [[deployment.paths]]
+    dockerpath = "/var/www/html/custom"
+    level = 0
+    name = "path-volume-dolibarr-custom"
+    srcname = "dolibarr-custom"
+    srcpath = "."
+    srctype = "volume"
+
+  [[deployment.paths]]
+    dockerpath = "/var/www/documents"
+    level = 0
+    name = "path-volume-dolibarr-documents"
+    srcname = "dolibarr-documents"
+    srcpath = "."
+    srctype = "volume"
+
   [[deployment.routes]]
     cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
     port = "{{app.port}}"
     primary = true
     protocol = "https"
-
   [deployment.storages]
 
     [[deployment.storages.volumes]]
@@ -88,17 +103,3 @@ prov-app-ha-topology = "flex"
     name = "DOLI_COMPANY_NAME"
     type = "env"
     value = "MyBigCompany"
-
-  [[deployment.paths]]
-    name = "path-volume-dolibarr-custom"
-    dockerpath = "/var/www/html/custom"
-    srctype = "volume"
-    srcname = "dolibarr-custom"
-    srcpath = "/"
-
-  [[deployment.paths]]
-    name = "path-volume-dolibarr-documents"
-    dockerpath = "/var/www/documents"
-    srctype = "volume"
-    srcname = "dolibarr-documents"
-    srcpath = "/"
