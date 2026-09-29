@@ -1,5 +1,10 @@
 app-host = "{{app.name}}"
 app-port = "9000"
+# Accounting: minio holds data -> a STATEFUL app, reserved and billed as DBU (Database ratio),
+# and an S3 PROVIDER: its volume is archive storage others consume (producer BAU, not BKU).
+# Both are app settings the operator can still flip per app in replication-manager.
+app-stateful = true
+app-s3-provider = true
 prov-app-agents = "{{config.provAppAgents}}"
 prov-app-cpu-cores = "{{config.provAppCpuCores}}"
 prov-app-disk-size = "{{config.provAppDiskSize}}"
