@@ -22,7 +22,7 @@ prov-app-ha-topology = "flex"
     locked = false
     name = "ADMINER_DEFAULT_SERVER"
     type = "env"
-    value = "{{proxies.#.name}}"
+    value = "{{proxies.0.name}}"
 
   [[deployment.variables]]
     locked = false
