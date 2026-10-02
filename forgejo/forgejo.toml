@@ -2,7 +2,8 @@
 # data volume moves with it. Its database is the cluster's MariaDB through the proxy; the
 # web UI is on an https route; git over ssh is not exposed (no TCP port on the gateway),
 # clone over https. The schema, user and password are created by the cluster at provision
-# (app.db.* keys, app-db-auto-create), never on an existing schema or user.
+# (app.db.* keys, app-db-auto-create), never on an existing schema or user. INSTALL_LOCK makes
+# forgejo configure itself from the environment and migrate the schema at first start.
 app-host = "{{app.name}}"
 app-port = "3000"
 app-db-auto-create = true
@@ -37,6 +38,12 @@ prov-app-memory = "{{config.provAppMemory}}"
       name = "forgejo-data"
       poolname = "drbd"
       volumedir = "data"
+
+  [[deployment.variables]]
+    locked = true
+    name = "FORGEJO__security__INSTALL_LOCK"
+    type = "env"
+    value = "true"
 
   [[deployment.variables]]
     locked = true
