@@ -1,0 +1,85 @@
+# Forgejo, the git forge: one instance that owns its repositories, failover topology, the
+# data volume moves with it. Its database is the cluster's MariaDB through the proxy; the
+# web UI is on an https route; git over ssh is not exposed (no TCP port on the gateway),
+# clone over https.
+app-host = "{{app.name}}"
+app-port = "3000"
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "codeberg.org/forgejo/forgejo:9"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.paths]]
+    dockerpath = "/data"
+    level = 0
+    name = "path-volume-forgejo-data"
+    parentname = ""
+    srcname = "forgejo-data"
+    srcpath = "data/"
+    srctype = "volume"
+    volumename = "forgejo-data"
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "forgejo-data"
+      poolname = "drbd"
+      volumedir = "data"
+
+  [[deployment.variables]]
+    locked = true
+    name = "FORGEJO__database__DB_TYPE"
+    type = "env"
+    value = "mysql"
+
+  [[deployment.variables]]
+    locked = false
+    name = "FORGEJO__database__HOST"
+    type = "env"
+    value = "{{proxies.#.name}}:3306"
+
+  [[deployment.variables]]
+    locked = false
+    name = "FORGEJO__database__NAME"
+    type = "env"
+    value = "forgejo"
+
+  [[deployment.variables]]
+    locked = false
+    name = "FORGEJO__database__USER"
+    type = "env"
+    value = "forgejo"
+
+  [[deployment.variables]]
+    locked = false
+    name = "FORGEJO__database__PASSWD"
+    type = "secret"
+    value = "{{DB_PASSWORD}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "FORGEJO__server__ROOT_URL"
+    type = "env"
+    value = "https://{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io/"
+
+  [[deployment.variables]]
+    locked = false
+    name = "FORGEJO__server__DOMAIN"
+    type = "env"
+    value = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+
+  [[deployment.variables]]
+    locked = true
+    name = "FORGEJO__server__HTTP_PORT"
+    type = "env"
+    value = "3000"

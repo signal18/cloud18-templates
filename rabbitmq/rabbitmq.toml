@@ -1,0 +1,56 @@
+# RabbitMQ, one broker that persists its queues on a volume that moves with it:
+# failover topology. AMQP (5672) stays on the cluster network, never on a gateway port:
+# clients reach {{app.name}}.{{name}}.svc.cloud18:5672; the management UI is the https
+# sidecar on the route (port 15672).
+app-host = "{{app.name}}"
+app-port = "15672"
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "rabbitmq:4-management"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.paths]]
+    dockerpath = "/var/lib/rabbitmq"
+    level = 0
+    name = "path-volume-rabbitmq-data"
+    parentname = ""
+    srcname = "rabbitmq-data"
+    srcpath = "data/"
+    srctype = "volume"
+    volumename = "rabbitmq-data"
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "rabbitmq-data"
+      poolname = "drbd"
+      volumedir = "data"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RABBITMQ_DEFAULT_USER"
+    type = "env"
+    value = "admin"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RABBITMQ_DEFAULT_PASS"
+    type = "secret"
+    value = "{{ADMIN_PASSWORD}}"
+
+  # A stable node name, so the data directory survives a move to another agent.
+  [[deployment.variables]]
+    locked = true
+    name = "RABBITMQ_NODENAME"
+    type = "env"
+    value = "rabbit@localhost"
