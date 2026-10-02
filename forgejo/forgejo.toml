@@ -55,7 +55,7 @@ prov-app-memory = "{{config.provAppMemory}}"
     locked = false
     name = "FORGEJO__database__HOST"
     type = "env"
-    value = "{{proxies.#.name}}:3306"
+    value = "{{proxies.0.name}}:{{proxies.0.writePort}}"
 
   [[deployment.variables]]
     locked = false
