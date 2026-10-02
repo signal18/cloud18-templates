@@ -1,0 +1,15 @@
+# Memcached, a volatile cache with no state: flex topology, one instance per agent, no
+# volume, no route (answers on {{app.name}}.{{name}}.svc.cloud18:11211 inside the cluster
+# network). The cache size follows the app memory of the plan.
+app-host = "{{app.name}}"
+app-port = "11211"
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-docker-cmd = "memcached -m 512 -c 4096"
+prov-app-docker-img = "memcached:1.6-alpine"
+prov-app-ha-topology = "flex"
+prov-app-memory = "{{config.provAppMemory}}"
+
+[deployment]
+  [deployment.Mutex]
+  [deployment.storages]

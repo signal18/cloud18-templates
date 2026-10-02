@@ -1,0 +1,32 @@
+# Valkey (the Redis fork), one instance that persists its dataset (append-only file) on a
+# volume that moves with it: failover topology. No route: it answers on
+# {{app.name}}.{{name}}.svc.cloud18:6379 inside the cluster network only, which is also
+# why it runs without a password by default; set VALKEY_PASSWORD to require one.
+app-host = "{{app.name}}"
+app-port = "6379"
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-cmd = "valkey-server --appendonly yes --dir /data"
+prov-app-docker-img = "valkey/valkey:8"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.paths]]
+    dockerpath = "/data"
+    level = 0
+    name = "path-volume-valkey-data"
+    parentname = ""
+    srcname = "valkey-data"
+    srcpath = "data/"
+    srctype = "volume"
+    volumename = "valkey-data"
+
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "valkey-data"
+      poolname = "drbd"
+      volumedir = "data"

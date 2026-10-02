@@ -1,0 +1,67 @@
+# Microsoft SQL Server, one instance that owns its data: failover topology, the data
+# volume moves with it. No route: a database is never on a gateway port, it answers on
+# {{app.name}}.{{name}}.svc.cloud18:1433 inside the cluster network; manage it with the
+# adminer template on an https route. SQL Server needs a 4 KiB sector size on its data
+# volume, hence the drbd4k pool. The image is 1.5 GB: the start timeout covers the pull.
+app-host = "{{app.name}}"
+app-port = "1433"
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "mcr.microsoft.com/mssql/server:2022-latest"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+prov-app-start-timeout = "15m"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.paths]]
+    dockerpath = "/var/opt/mssql"
+    level = 0
+    name = "path-volume-mssql-data"
+    parentname = ""
+    srcname = "mssql-data"
+    srcpath = "mssql/"
+    srctype = "volume"
+    volumename = "mssql-data"
+
+  [[deployment.paths]]
+    dockerpath = "/backup"
+    level = 0
+    name = "path-volume-mssql-backup"
+    parentname = ""
+    srcname = "mssql-backup"
+    srcpath = "backup/"
+    srctype = "volume"
+    volumename = "mssql-backup"
+
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "mssql-data"
+      poolname = "drbd4k"
+      volumedir = "data"
+    [[deployment.storages.volumes]]
+      name = "mssql-backup"
+      poolname = "backup"
+      volumedir = "data"
+
+  [[deployment.variables]]
+    locked = true
+    name = "ACCEPT_EULA"
+    type = "env"
+    value = "Y"
+
+  # Express is free; Developer, Standard, Enterprise or a product key go here.
+  [[deployment.variables]]
+    locked = false
+    name = "MSSQL_PID"
+    type = "env"
+    value = "Express"
+
+  # SQL Server refuses a weak password: at least 8 characters, 3 of the 4 classes.
+  [[deployment.variables]]
+    locked = false
+    name = "MSSQL_SA_PASSWORD"
+    type = "secret"
+    value = "{{SA_PASSWORD}}"

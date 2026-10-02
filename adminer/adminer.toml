@@ -1,0 +1,31 @@
+# Adminer, the https sidecar that manages a database of the cluster: point
+# ADMINER_DEFAULT_SERVER at the instance (an app host such as mssql1.{{name}}.svc.cloud18,
+# or a proxy name for the MariaDB cluster). The only thing on the gateway is https to
+# port 8080. The official image carries MySQL, PostgreSQL, SQLite and MS SQL (FreeTDS).
+app-host = "{{app.name}}"
+app-port = "8080"
+prov-app-docker-img = "adminer:latest"
+prov-app-ha-topology = "flex"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+
+  [deployment.storages]
+
+  [[deployment.variables]]
+    locked = false
+    name = "ADMINER_DEFAULT_SERVER"
+    type = "env"
+    value = "{{proxies.#.name}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "ADMINER_DESIGN"
+    type = "env"
+    value = "nette"
