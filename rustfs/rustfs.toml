@@ -1,0 +1,82 @@
+# RustFS, S3 object storage (Apache 2.0, MinIO compatible): the cluster's S3 provider. One
+# instance that owns its data volume, failover topology. The S3 API answers on
+# {{app.name}}.{{name}}.svc.cloud18:9000 inside the cluster network only, the web console is on the
+# https route. Stateful (DBU) and S3 provider (its volume is producer BAU). The root secret is
+# a plain default, change it at add time; other apps mount its buckets through s3-mounts.
+app-host = "{{app.name}}"
+app-port = "9000"
+app-stateful = true
+app-s3-provider = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-memory = "{{config.provAppMemory}}"
+prov-app-docker-img = "rustfs/rustfs:latest"
+prov-app-ha-topology = "failover"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.paths]]
+    dockerpath = "/data"
+    level = 0
+    name = "path-volume-rustfs-data"
+    parentname = ""
+    srcname = "rustfs-data"
+    srcpath = "data/"
+    srctype = "volume"
+    volumename = "rustfs-data"
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "9001"
+    primary = true
+    protocol = "https"
+
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "rustfs-data"
+      poolname = "drbd"
+      volumedir = "data"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_ACCESS_KEY"
+    type = "env"
+    value = "admin"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_SECRET_KEY"
+    type = "secret"
+    value = "rustfsadmin-change-me"
+
+  [[deployment.variables]]
+    locked = true
+    name = "RUSTFS_VOLUMES"
+    type = "env"
+    value = "/data"
+
+  [[deployment.variables]]
+    locked = true
+    name = "RUSTFS_ADDRESS"
+    type = "env"
+    value = "0.0.0.0:9000"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_CONSOLE_ENABLE"
+    type = "env"
+    value = "true"
+
+  [[deployment.variables]]
+    locked = true
+    name = "RUSTFS_CONSOLE_ADDRESS"
+    type = "env"
+    value = "0.0.0.0:9001"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_REGION"
+    type = "env"
+    value = "eu-west-1"

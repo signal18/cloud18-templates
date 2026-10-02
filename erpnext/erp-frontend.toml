@@ -1,0 +1,111 @@
+# ERPNext (frappe) as linked single-process apps, one container each, no shared volume: the
+# site files live in the cluster's S3 provider (s3-mounts, app rustfs1), the database is the
+# cluster's MariaDB through the proxy, the two redis are valkey apps. Add them in this order,
+# with these names, on a cluster that already has rustfs1: valkey as erp-cache and erp-queue,
+# then erpnext/erp-backend, erp-worker, erp-scheduler, erp-websocket, erp-frontend.
+# erp-backend owns the database (app.db.*: schema, user and password created by the cluster)
+# and the site: on first start it runs bench new-site on the empty schema; the other
+# processes reference its credentials. The site encryption key is derived from the database
+# password so every container shares it. Files are presented as uid/gid 1000 (frappe).
+# This file: erp-frontend.
+app-host = "{{app.name}}"
+app-port = "8080"
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-memory = "{{config.provAppMemory}}"
+prov-app-docker-cmd = "nginx-entrypoint.sh"
+prov-app-docker-img = "frappe/erpnext:v16.37.0"
+prov-app-ha-topology = "flex"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.paths]]
+    dockerpath = "/home/frappe/frappe-bench/sites/erpnext/public/files"
+    level = 0
+    name = "path-s3-erp-public"
+    parentname = ""
+    srcname = "erp-public"
+    srcpath = "mnt/erp-public/"
+    srctype = "s3"
+    volumename = "erp-mounts"
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "8080"
+    primary = true
+    protocol = "https"
+
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "erp-mounts"
+      poolname = "drbd"
+      volumedir = "data"
+      size = "1"
+
+    [[deployment.storages.s3-mounts]]
+      name = "erp-public"
+      bucket = "erp-public"
+      region = "{{apps.#(name==rustfs1).config.deployment.variables.#(name==RUSTFS_REGION).value}}"
+      endpoint = "{{apps.#(name==rustfs1).host}}:9000"
+      accesskey = "{{apps.#(name==rustfs1).config.deployment.variables.#(name==RUSTFS_ACCESS_KEY).value}}"
+      secretkey = "{{apps.#(name==rustfs1).config.deployment.variables.#(name==RUSTFS_SECRET_KEY).value}}"
+      volumename = "erp-mounts"
+      volumedir = "mnt/erp-public"
+      uid = "1000"
+      gid = "1000"
+
+  [[deployment.variables]]
+    locked = false
+    name = "BACKEND"
+    type = "env"
+    value = "{{apps.#(name==erp-backend).host}}:8000"
+
+  [[deployment.variables]]
+    locked = false
+    name = "SOCKETIO"
+    type = "env"
+    value = "{{apps.#(name==erp-websocket).host}}:9000"
+
+  [[deployment.variables]]
+    locked = true
+    name = "FRAPPE_SITE_NAME_HEADER"
+    type = "env"
+    value = "erpnext"
+
+  [[deployment.variables]]
+    locked = true
+    name = "NGINX_LISTEN_PORT"
+    type = "env"
+    value = "8080"
+
+  [[deployment.variables]]
+    locked = false
+    name = "UPSTREAM_REAL_IP_ADDRESS"
+    type = "env"
+    value = "127.0.0.1"
+
+  [[deployment.variables]]
+    locked = false
+    name = "UPSTREAM_REAL_IP_HEADER"
+    type = "env"
+    value = "X-Forwarded-For"
+
+  [[deployment.variables]]
+    locked = false
+    name = "UPSTREAM_REAL_IP_RECURSIVE"
+    type = "env"
+    value = "off"
+
+  [[deployment.variables]]
+    locked = false
+    name = "PROXY_READ_TIMEOUT"
+    type = "env"
+    value = "120"
+
+  [[deployment.variables]]
+    locked = false
+    name = "CLIENT_MAX_BODY_SIZE"
+    type = "env"
+    value = "50m"

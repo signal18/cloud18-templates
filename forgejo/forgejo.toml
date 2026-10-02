@@ -1,9 +1,11 @@
 # Forgejo, the git forge: one instance that owns its repositories, failover topology, the
 # data volume moves with it. Its database is the cluster's MariaDB through the proxy; the
 # web UI is on an https route; git over ssh is not exposed (no TCP port on the gateway),
-# clone over https.
+# clone over https. The schema, user and password are created by the cluster at provision
+# (app.db.* keys, app-db-auto-create), never on an existing schema or user.
 app-host = "{{app.name}}"
 app-port = "3000"
+app-db-auto-create = true
 prov-app-agents = "{{config.provAppAgents}}"
 prov-app-cpu-cores = "{{config.provAppCpuCores}}"
 prov-app-disk-size = "{{config.provAppDiskSize}}"
@@ -52,19 +54,19 @@ prov-app-memory = "{{config.provAppMemory}}"
     locked = false
     name = "FORGEJO__database__NAME"
     type = "env"
-    value = "forgejo"
+    value = "{{app.db.schema}}"
 
   [[deployment.variables]]
     locked = false
     name = "FORGEJO__database__USER"
     type = "env"
-    value = "forgejo"
+    value = "{{app.db.user}}"
 
   [[deployment.variables]]
     locked = false
     name = "FORGEJO__database__PASSWD"
     type = "secret"
-    value = "{{DB_PASSWORD}}"
+    value = "{{app.db.password}}"
 
   [[deployment.variables]]
     locked = false

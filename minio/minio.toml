@@ -1,3 +1,6 @@
+# MinIO, S3 object storage. Upstream archived the community edition in 2026 (no more images
+# or security fixes): prefer the rustfs template for a new S3 provider. The root password is a
+# plain default, change it at add time (a template cannot carry free placeholders).
 app-host = "{{app.name}}"
 app-port = "9000"
 prov-app-agents = "{{config.provAppAgents}}"
@@ -37,7 +40,7 @@ prov-app-memory = "{{config.provAppMemory}}"
     locked = false
     name = "MINIO_ROOT_PASSWORD"
     type = "secret"
-    value = "{{ROOT_PASSWORD}}"
+    value = "minioadmin-change-me"
 
   [[deployment.variables]]
     locked = false
@@ -49,7 +52,7 @@ prov-app-memory = "{{config.provAppMemory}}"
     locked = false
     name = "MINIO_REGION"
     type = "env"
-    value = "{{REGION}}"
+    value = "eu-west-1"
 
   [[deployment.variables]]
     locked = false
