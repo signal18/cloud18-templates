@@ -38,6 +38,9 @@ prov-app-ha-topology = "failover"
       name = "rustfs-data"
       poolname = "drbd"
       volumedir = "data"
+      user = "10001"
+      group = "10001"
+      dirperm = "0750"
 
   [[deployment.variables]]
     locked = false

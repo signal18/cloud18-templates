@@ -43,6 +43,8 @@ prov-app-ha-topology = "flex"
       poolname = "drbd"
       volumedir = "data"
       size = "1"
+      user = "1000"
+      group = "1000"
 
     [[deployment.storages.s3-mounts]]
       name = "erpnext-public"
