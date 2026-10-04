@@ -16,7 +16,7 @@ prov-app-disk-size = "{{config.provAppDiskSize}}"
 prov-app-memory = "{{config.provAppMemory}}"
 prov-app-docker-cmd = "nginx-entrypoint.sh"
 prov-app-docker-img = "frappe/erpnext:v16.37.0"
-prov-app-ha-topology = "flex"
+prov-app-ha-topology = "failover"
 
 [deployment]
   [deployment.Mutex]

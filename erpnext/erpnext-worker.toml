@@ -16,7 +16,7 @@ prov-app-disk-size = "{{config.provAppDiskSize}}"
 prov-app-memory = "{{config.provAppMemory}}"
 prov-app-docker-cmd = "bash -c \"set -e; cd /home/frappe/frappe-bench; ls -1 apps > sites/apps.txt; mkdir -p sites/$FRAPPE_SITE; KEY=$(python3 -c 'import hashlib,base64,os;print(base64.urlsafe_b64encode(hashlib.sha256(os.environ[\\\"FRAPPE_DB_PASSWORD\\\"].encode()).digest()).decode())'); python3 -c 'import json,os;json.dump({\\\"db_name\\\":os.environ[\\\"FRAPPE_DB_NAME\\\"],\\\"db_user\\\":os.environ[\\\"FRAPPE_DB_USER\\\"],\\\"db_password\\\":os.environ[\\\"FRAPPE_DB_PASSWORD\\\"],\\\"db_type\\\":\\\"mariadb\\\"},open(\\\"sites/\\\"+os.environ[\\\"FRAPPE_SITE\\\"]+\\\"/site_config.json\\\",\\\"w\\\"))'; bench --site $FRAPPE_SITE set-config encryption_key $KEY; echo $FRAPPE_SITE > sites/currentsite.txt; exec bench worker --queue short,default,long\""
 prov-app-docker-img = "frappe/erpnext:v16.37.0"
-prov-app-ha-topology = "flex"
+prov-app-ha-topology = "failover"
 
 [deployment]
   [deployment.Mutex]
