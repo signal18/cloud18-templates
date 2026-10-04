@@ -24,12 +24,12 @@ prov-app-ha-topology = "flex"
   [[deployment.paths]]
     dockerpath = "/home/frappe/frappe-bench/sites/erpnext/public/files"
     level = 0
-    name = "path-s3-erp-public"
+    name = "path-s3-erpnext-public"
     parentname = ""
-    srcname = "erp-public"
-    srcpath = "mnt/erp-public/"
+    srcname = "erpnext-public"
+    srcpath = "mnt/erpnext-public/"
     srctype = "s3"
-    volumename = "erp-mounts"
+    volumename = "erpnext-mounts"
 
   [[deployment.routes]]
     cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
@@ -39,20 +39,20 @@ prov-app-ha-topology = "flex"
 
   [deployment.storages]
     [[deployment.storages.volumes]]
-      name = "erp-mounts"
+      name = "erpnext-mounts"
       poolname = "drbd"
       volumedir = "data"
       size = "1"
 
     [[deployment.storages.s3-mounts]]
-      name = "erp-public"
-      bucket = "erp-public"
+      name = "erpnext-public"
+      bucket = "erpnext-public"
       region = "{{apps.#(name==rustfs1).config.deployment.variables.#(name==RUSTFS_REGION).value}}"
       endpoint = "{{apps.#(name==rustfs1).host}}:9000"
       accesskey = "{{apps.#(name==rustfs1).config.deployment.variables.#(name==RUSTFS_ACCESS_KEY).value}}"
       secretkey = "{{apps.#(name==rustfs1).config.deployment.variables.#(name==RUSTFS_SECRET_KEY).value}}"
-      volumename = "erp-mounts"
-      volumedir = "mnt/erp-public"
+      volumename = "erpnext-mounts"
+      volumedir = "mnt/erpnext-public"
       uid = "1000"
       gid = "1000"
 
