@@ -1,21 +1,20 @@
 # ERPNext (frappe) as linked single-process apps, one container each, no shared volume: the
 # site files live in the cluster's S3 provider (s3-mounts, app rustfs1), the database is the
 # cluster's MariaDB through the proxy, the two redis are valkey apps. Add them in this order,
-# with these names, on a cluster that already has rustfs1: valkey as erp-cache and erp-queue,
-# then erpnext/erp-backend, erp-worker, erp-scheduler, erp-websocket, erp-frontend.
-# erp-backend owns the database (app.db.*: schema, user and password created by the cluster)
+# with these names, on a cluster that already has rustfs1: valkey as erpnext-cache and erpnext-queue,
+# then erpnext/erpnext-backend, erpnext-worker, erpnext-scheduler, erpnext-websocket, erpnext-frontend.
+# erpnext-backend owns the database (app.db.*: schema, user and password created by the cluster)
 # and the site: on first start it runs bench new-site on the empty schema; the other
 # processes reference its credentials. The site encryption key is derived from the database
 # password so every container shares it. Files are presented as uid/gid 1000 (frappe).
-# This file: erp-backend.
+# This file: erpnext-worker.
 app-host = "{{app.name}}"
-app-port = "8000"
-app-db-auto-create = true
+app-port = "8001"
 prov-app-agents = "{{config.provAppAgents}}"
 prov-app-cpu-cores = "{{config.provAppCpuCores}}"
 prov-app-disk-size = "{{config.provAppDiskSize}}"
 prov-app-memory = "{{config.provAppMemory}}"
-prov-app-docker-cmd = "bash -c \"set -e; cd /home/frappe/frappe-bench; ls -1 apps > sites/apps.txt; mkdir -p sites/$FRAPPE_SITE; KEY=$(python3 -c 'import hashlib,base64,os;print(base64.urlsafe_b64encode(hashlib.sha256(os.environ[\\\"FRAPPE_DB_PASSWORD\\\"].encode()).digest()).decode())'); TABLES=$(env/bin/python -c 'import pymysql,os;c=pymysql.connect(host=os.environ[\\\"FRAPPE_DB_HOST\\\"],port=int(os.environ[\\\"FRAPPE_DB_PORT\\\"]),user=os.environ[\\\"FRAPPE_DB_USER\\\"],password=os.environ[\\\"FRAPPE_DB_PASSWORD\\\"],database=os.environ[\\\"FRAPPE_DB_NAME\\\"]);cur=c.cursor();cur.execute(\\\"SHOW TABLES LIKE %s\\\",(\\\"tabDocType\\\",));print(cur.rowcount)'); if [ \\\"$TABLES\\\" = \\\"0\\\" ]; then bench new-site $FRAPPE_SITE --force --no-setup-db --db-name $FRAPPE_DB_NAME --db-user $FRAPPE_DB_USER --db-password $FRAPPE_DB_PASSWORD --db-host $FRAPPE_DB_HOST --db-port $FRAPPE_DB_PORT --admin-password $ERP_ADMIN_PASSWORD --install-app erpnext --set-default; bench --site $FRAPPE_SITE set-config encryption_key $KEY; echo $FRAPPE_SITE > sites/currentsite.txt; else python3 -c 'import json,os;json.dump({\\\"db_name\\\":os.environ[\\\"FRAPPE_DB_NAME\\\"],\\\"db_user\\\":os.environ[\\\"FRAPPE_DB_USER\\\"],\\\"db_password\\\":os.environ[\\\"FRAPPE_DB_PASSWORD\\\"],\\\"db_type\\\":\\\"mariadb\\\"},open(\\\"sites/\\\"+os.environ[\\\"FRAPPE_SITE\\\"]+\\\"/site_config.json\\\",\\\"w\\\"))'; bench --site $FRAPPE_SITE set-config encryption_key $KEY; echo $FRAPPE_SITE > sites/currentsite.txt; fi; exec start.sh\""
+prov-app-docker-cmd = "bash -c \"set -e; cd /home/frappe/frappe-bench; ls -1 apps > sites/apps.txt; mkdir -p sites/$FRAPPE_SITE; KEY=$(python3 -c 'import hashlib,base64,os;print(base64.urlsafe_b64encode(hashlib.sha256(os.environ[\\\"FRAPPE_DB_PASSWORD\\\"].encode()).digest()).decode())'); python3 -c 'import json,os;json.dump({\\\"db_name\\\":os.environ[\\\"FRAPPE_DB_NAME\\\"],\\\"db_user\\\":os.environ[\\\"FRAPPE_DB_USER\\\"],\\\"db_password\\\":os.environ[\\\"FRAPPE_DB_PASSWORD\\\"],\\\"db_type\\\":\\\"mariadb\\\"},open(\\\"sites/\\\"+os.environ[\\\"FRAPPE_SITE\\\"]+\\\"/site_config.json\\\",\\\"w\\\"))'; bench --site $FRAPPE_SITE set-config encryption_key $KEY; echo $FRAPPE_SITE > sites/currentsite.txt; exec bench worker --queue short,default,long\""
 prov-app-docker-img = "frappe/erpnext:v16.37.0"
 prov-app-ha-topology = "flex"
 
@@ -95,46 +94,28 @@ prov-app-ha-topology = "flex"
     locked = false
     name = "FRAPPE_DB_NAME"
     type = "env"
-    value = "{{app.db.schema}}"
+    value = "{{apps.#(name==erpnext-backend).db.schema}}"
 
   [[deployment.variables]]
     locked = false
     name = "FRAPPE_DB_USER"
     type = "env"
-    value = "{{app.db.user}}"
+    value = "{{apps.#(name==erpnext-backend).db.user}}"
 
   [[deployment.variables]]
     locked = false
     name = "FRAPPE_DB_PASSWORD"
     type = "secret"
-    value = "{{app.db.password}}"
+    value = "{{apps.#(name==erpnext-backend).db.password}}"
 
   [[deployment.variables]]
     locked = false
     name = "FRAPPE_REDIS_CACHE"
     type = "env"
-    value = "redis://{{apps.#(name==erp-cache).host}}:6379"
+    value = "redis://{{apps.#(name==erpnext-cache).host}}:6379"
 
   [[deployment.variables]]
     locked = false
     name = "FRAPPE_REDIS_QUEUE"
     type = "env"
-    value = "redis://{{apps.#(name==erp-queue).host}}:6379"
-
-  [[deployment.variables]]
-    locked = false
-    name = "ERP_ADMIN_PASSWORD"
-    type = "secret"
-    value = "admin-change-me"
-
-  [[deployment.variables]]
-    locked = false
-    name = "GUNICORN_WORKERS"
-    type = "env"
-    value = "2"
-
-  [[deployment.variables]]
-    locked = false
-    name = "GUNICORN_THREADS"
-    type = "env"
-    value = "4"
+    value = "redis://{{apps.#(name==erpnext-queue).host}}:6379"

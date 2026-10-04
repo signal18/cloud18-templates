@@ -1,13 +1,13 @@
 # ERPNext (frappe) as linked single-process apps, one container each, no shared volume: the
 # site files live in the cluster's S3 provider (s3-mounts, app rustfs1), the database is the
 # cluster's MariaDB through the proxy, the two redis are valkey apps. Add them in this order,
-# with these names, on a cluster that already has rustfs1: valkey as erp-cache and erp-queue,
-# then erpnext/erp-backend, erp-worker, erp-scheduler, erp-websocket, erp-frontend.
-# erp-backend owns the database (app.db.*: schema, user and password created by the cluster)
+# with these names, on a cluster that already has rustfs1: valkey as erpnext-cache and erpnext-queue,
+# then erpnext/erpnext-backend, erpnext-worker, erpnext-scheduler, erpnext-websocket, erpnext-frontend.
+# erpnext-backend owns the database (app.db.*: schema, user and password created by the cluster)
 # and the site: on first start it runs bench new-site on the empty schema; the other
 # processes reference its credentials. The site encryption key is derived from the database
 # password so every container shares it. Files are presented as uid/gid 1000 (frappe).
-# This file: erp-scheduler.
+# This file: erpnext-scheduler.
 app-host = "{{app.name}}"
 app-port = "8002"
 prov-app-agents = "{{config.provAppAgents}}"
@@ -45,28 +45,28 @@ prov-app-ha-topology = "flex"
     locked = false
     name = "FRAPPE_DB_NAME"
     type = "env"
-    value = "{{apps.#(name==erp-backend).db.schema}}"
+    value = "{{apps.#(name==erpnext-backend).db.schema}}"
 
   [[deployment.variables]]
     locked = false
     name = "FRAPPE_DB_USER"
     type = "env"
-    value = "{{apps.#(name==erp-backend).db.user}}"
+    value = "{{apps.#(name==erpnext-backend).db.user}}"
 
   [[deployment.variables]]
     locked = false
     name = "FRAPPE_DB_PASSWORD"
     type = "secret"
-    value = "{{apps.#(name==erp-backend).db.password}}"
+    value = "{{apps.#(name==erpnext-backend).db.password}}"
 
   [[deployment.variables]]
     locked = false
     name = "FRAPPE_REDIS_CACHE"
     type = "env"
-    value = "redis://{{apps.#(name==erp-cache).host}}:6379"
+    value = "redis://{{apps.#(name==erpnext-cache).host}}:6379"
 
   [[deployment.variables]]
     locked = false
     name = "FRAPPE_REDIS_QUEUE"
     type = "env"
-    value = "redis://{{apps.#(name==erp-queue).host}}:6379"
+    value = "redis://{{apps.#(name==erpnext-queue).host}}:6379"
