@@ -1,7 +1,8 @@
 # RustFS, S3 object storage (Apache 2.0, MinIO compatible): the cluster's S3 provider. One
 # instance that owns its data volume, failover topology. The S3 API answers on
 # {{app.name}}.{{name}}.svc.cloud18:9000 inside the cluster network only, the web console is on the
-# https route. Stateful (DBU) and S3 provider (its volume is producer BAU). The root secret is
+# https route under the path /rustfs/console/ (the route's root answers the S3 API: 403 AccessDenied
+# is normal there). Stateful (DBU) and S3 provider (its volume is producer BAU). The root secret is
 # a plain default, change it at add time; other apps mount its buckets through s3-mounts.
 app-host = "{{app.name}}"
 app-port = "9000"
