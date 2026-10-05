@@ -8,8 +8,9 @@
 #   - the jobs sidecar: logical and physical backups, optimize, usage report.
 # Declared as the server of a cluster (db-servers-hosts = "<app>:5432/postgres") it is
 # monitored by replication-manager. Add standbys with the postgres-standby template.
-# Reachable from the cluster network only (no route). Change POSTGRES_PASSWORD before
-# provisioning.
+# Reachable from the cluster network only (no route). Its superuser is the cluster's
+# database credential (db-servers-credential), delivered by replication-manager: set it
+# before provisioning, the shipped default is refused.
 app-host = "{{app.name}}"
 app-port = "5432"
 app-stateful = true
@@ -37,11 +38,6 @@ prov-app-memory = "{{config.provAppMemory}}"
       name = "postgres-data"
       poolname = "drbd"
       volumedir = "data"
-  [[deployment.variables]]
-    locked = false
-    name = "POSTGRES_PASSWORD"
-    type = "secret"
-    value = "postgres"
   [[deployment.variables]]
     locked = true
     name = "PGDATA"
