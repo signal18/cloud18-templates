@@ -1,0 +1,101 @@
+# PHP application on the signal18/php-fpm-84 image (nginx, PHP-FPM 8.4, Composer, Node and
+# Vite in one container). The code and the nginx / PHP-FPM configuration are cloned from git
+# by an init container and mounted in place: replace the two sample repositories with your
+# own. The sample page answers "Hello world, I'm connected to database server id N" through
+# the cluster's proxy. The schema, user and password are created by the cluster at provision
+# (app.db.* keys, app-db-auto-create), never on an existing schema or user.
+app-host = "{{app.name}}"
+app-port = "80"
+app-db-auto-create = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "signal18/php-fpm-84:v4"
+prov-app-ha-topology = "flex"
+prov-app-memory = "{{config.provAppMemory}}"
+[deployment]
+  [deployment.Mutex]
+  [[deployment.paths]]
+    dockerpath = "/etc/nginx/sites-available/default"
+    level = 0
+    name = "path-git-cloud18-git-sample-config"
+    parentname = ""
+    srcname = "cloud18-git-sample-config"
+    srcpath = "etc/cloud18-git-sample-config/php/nginx.conf"
+    srctype = "git"
+    volumename = "local-config-directory"
+  [[deployment.paths]]
+    dockerpath = "/etc/php/8.4/fpm/pool.d/www.conf"
+    level = 0
+    name = "path-git-cloud18-git-sample-config"
+    parentname = ""
+    srcname = "cloud18-git-sample-config"
+    srcpath = "etc/cloud18-git-sample-config/php/www.conf"
+    srctype = "git"
+    volumename = "local-config-directory"
+  [[deployment.paths]]
+    dockerpath = "/var/www/html/"
+    level = 0
+    name = "path-git-cloud18-git-sample-data"
+    parentname = ""
+    srcname = "cloud18-git-sample-data"
+    srcpath = "var/cloud18-git-sample-data/php/"
+    srctype = "git"
+    volumename = "local-data-directory"
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+  [deployment.storages]
+    [[deployment.storages.git-clones]]
+      branch = "main"
+      name = "cloud18-git-sample-data"
+      pass = ""
+      repo = "github.com/signal18/cloud18-template-code.git"
+      timeout = 0
+      user = ""
+      volumedir = "var/cloud18-git-sample-data"
+      volumename = "local-data-directory"
+    [[deployment.storages.git-clones]]
+      branch = "main"
+      name = "cloud18-git-sample-config"
+      pass = ""
+      repo = "github.com/signal18/cloud18-template-config.git"
+      timeout = 0
+      user = ""
+      volumedir = "etc/cloud18-git-sample-config"
+      volumename = "local-config-directory"
+    [[deployment.storages.volumes]]
+      name = "local-data-directory"
+      poolname = "tank"
+      volumedir = "var"
+    [[deployment.storages.volumes]]
+      name = "local-config-directory"
+      poolname = "tank"
+      volumedir = "etc"
+  [[deployment.variables]]
+    locked = false
+    name = "DB_HOST"
+    type = "env"
+    value = "{{proxies.0.name}}"
+  [[deployment.variables]]
+    locked = false
+    name = "DB_PORT"
+    type = "env"
+    value = "{{proxies.0.writePort}}"
+  [[deployment.variables]]
+    locked = false
+    name = "DB_NAME"
+    type = "env"
+    value = "{{app.db.schema}}"
+  [[deployment.variables]]
+    locked = false
+    name = "DB_USER"
+    type = "env"
+    value = "{{app.db.user}}"
+  [[deployment.variables]]
+    locked = false
+    name = "DB_PASSWORD"
+    type = "secret"
+    value = "{{app.db.password}}"
