@@ -1,0 +1,45 @@
+# PostgreSQL as an application next to the cluster: one instance that owns its data,
+# failover topology, the data volume moves with it. Its memory and autovacuum settings are
+# rendered by replication-manager from the app plan (prov-app-configurator = postgres: the
+# postgres moduleset, sized on prov-app-memory, prov-app-cpu-cores and prov-app-disk-iops)
+# and written at every start, so a resize followed by a restart re-tunes it. Not a managed
+# database: no replication, failover of the data or backup by replication-manager.
+# Reachable from the cluster network only (no route). Change POSTGRES_PASSWORD before
+# provisioning.
+app-host = "{{app.name}}"
+app-port = "5432"
+app-stateful = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-configurator = "postgres"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-cmd = "sh -c \"printenv APP_CONFIGURATOR_SCRIPT | sh && exec docker-entrypoint.sh postgres -c include_dir=/etc/postgresql/replication-manager.d\""
+prov-app-docker-img = "postgres:17"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+[deployment]
+  [deployment.Mutex]
+  [[deployment.paths]]
+    dockerpath = "/var/lib/postgresql/data"
+    level = 0
+    name = "path-volume-postgres-data"
+    parentname = ""
+    srcname = "postgres-data"
+    srcpath = "data/"
+    srctype = "volume"
+    volumename = "postgres-data"
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "postgres-data"
+      poolname = "drbd"
+      volumedir = "data"
+  [[deployment.variables]]
+    locked = false
+    name = "POSTGRES_PASSWORD"
+    type = "secret"
+    value = "postgres"
+  [[deployment.variables]]
+    locked = true
+    name = "PGDATA"
+    type = "env"
+    value = "/var/lib/postgresql/data/pgdata"
