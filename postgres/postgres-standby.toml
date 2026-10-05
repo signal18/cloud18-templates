@@ -1,15 +1,9 @@
-# PostgreSQL primary next to (or as) the cluster's database: one instance that owns its data,
-# failover topology, the data volume moves with it. replication-manager delivers what runs
-# in the container (prov-app-configurator = postgres):
-#   - the start script: memory and autovacuum settings rendered from the app plan (the
-#     postgres moduleset, sized on prov-app-memory, prov-app-cpu-cores, prov-app-disk-iops),
-#     written at every start, so a resize followed by a restart re-tunes it; replication
-#     connections allowed for standbys;
-#   - the jobs sidecar: logical and physical backups, optimize, usage report.
-# Declared as the server of a cluster (db-servers-hosts = "<app>:5432/postgres") it is
-# monitored by replication-manager. Add standbys with the postgres-standby template.
-# Reachable from the cluster network only (no route). Change POSTGRES_PASSWORD before
-# provisioning.
+# PostgreSQL standby of the cluster's primary (WAL streaming). Same service as the postgres
+# template, plus PG_PRIMARY_HOST: at its first start, with an empty data directory, the
+# start script copies the primary online (pg_basebackup -R) and the instance then follows
+# it. The primary is the first monitored server of the cluster when the app is added.
+# Declare it next to the primary (db-servers-hosts = "pg1:5432/postgres,pg2:5432/postgres",
+# replication-master-slave-pg-stream = true). Same POSTGRES_PASSWORD as the primary.
 app-host = "{{app.name}}"
 app-port = "5432"
 app-stateful = true
@@ -42,6 +36,16 @@ prov-app-memory = "{{config.provAppMemory}}"
     name = "POSTGRES_PASSWORD"
     type = "secret"
     value = "postgres"
+  [[deployment.variables]]
+    locked = false
+    name = "PG_PRIMARY_HOST"
+    type = "env"
+    value = "{{servers.0.host}}"
+  [[deployment.variables]]
+    locked = false
+    name = "PG_PRIMARY_PORT"
+    type = "env"
+    value = "{{servers.0.port}}"
   [[deployment.variables]]
     locked = true
     name = "PGDATA"
