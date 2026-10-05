@@ -3,8 +3,8 @@
 # start script copies the primary online (pg_basebackup -R) and the instance then follows
 # it. The primary is the first monitored server of the cluster when the app is added.
 # Declare it next to the primary (db-servers-hosts = "pg1:5432/postgres,pg2:5432/postgres",
-# replication-master-slave-pg-stream = true). Its superuser is the cluster's
-# database credential, like the primary's.
+# replication-master-slave-pg-stream = true). Its superuser password is the
+# one generated for the cluster's first PostgreSQL app, the primary.
 app-host = "{{app.name}}"
 app-port = "5432"
 app-stateful = true
@@ -32,6 +32,11 @@ prov-app-memory = "{{config.provAppMemory}}"
       name = "postgres-data"
       poolname = "drbd"
       volumedir = "data"
+  [[deployment.variables]]
+    locked = false
+    name = "POSTGRES_PASSWORD"
+    type = "secret"
+    value = "{{apps.#(config.provAppConfigurator==postgres).randompassword}}"
   [[deployment.variables]]
     locked = false
     name = "PG_PRIMARY_HOST"

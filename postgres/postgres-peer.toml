@@ -1,16 +1,7 @@
-# PostgreSQL primary next to (or as) the cluster's database: one instance that owns its data,
-# failover topology, the data volume moves with it. replication-manager delivers what runs
-# in the container (prov-app-configurator = postgres):
-#   - the start script: memory and autovacuum settings rendered from the app plan (the
-#     postgres moduleset, sized on prov-app-memory, prov-app-cpu-cores, prov-app-disk-iops),
-#     written at every start, so a resize followed by a restart re-tunes it; replication
-#     connections allowed for standbys;
-#   - the jobs sidecar: logical and physical backups, optimize, usage report.
-# Declared as the server of a cluster (db-servers-hosts = "<app>:5432/postgres") it is
-# monitored by replication-manager. Add standbys with the postgres-standby template.
-# Reachable from the cluster network only (no route). Its superuser password is generated
-# by replication-manager ({{app.randompassword}}); when the app is the cluster's database
-# and the cluster still has the default password, it becomes the cluster's credential.
+# PostgreSQL peer: a second independent PostgreSQL instance of the cluster, for logical
+# replication (replication-master-slave-pg-logical). Same service as the postgres template,
+# its superuser password being the one generated for the cluster's first PostgreSQL app, so
+# the monitor uses one credential for both.
 app-host = "{{app.name}}"
 app-port = "5432"
 app-stateful = true
@@ -42,7 +33,7 @@ prov-app-memory = "{{config.provAppMemory}}"
     locked = false
     name = "POSTGRES_PASSWORD"
     type = "secret"
-    value = "{{app.randompassword}}"
+    value = "{{apps.#(config.provAppConfigurator==postgres).randompassword}}"
   [[deployment.variables]]
     locked = true
     name = "PGDATA"
