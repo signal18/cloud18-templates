@@ -2,7 +2,9 @@
 # failover topology, the data volume moves with it. Its memory and autovacuum settings are
 # rendered by replication-manager from the app plan (prov-app-configurator = postgres: the
 # postgres moduleset, sized on prov-app-memory, prov-app-cpu-cores and prov-app-disk-iops)
-# and written at every start, so a resize followed by a restart re-tunes it. Not a managed
+# and written at every start, so a resize followed by a restart re-tunes it. The start
+# command writes a two-line main configuration file that includes them (include_dir is a
+# file directive, it cannot be passed on the command line). Not a managed
 # database: no replication, failover of the data or backup by replication-manager.
 # Reachable from the cluster network only (no route). Change POSTGRES_PASSWORD before
 # provisioning.
@@ -13,7 +15,7 @@ prov-app-agents = "{{config.provAppAgents}}"
 prov-app-configurator = "postgres"
 prov-app-cpu-cores = "{{config.provAppCpuCores}}"
 prov-app-disk-size = "{{config.provAppDiskSize}}"
-prov-app-docker-cmd = "sh -c \"printenv APP_CONFIGURATOR_SCRIPT | sh && exec docker-entrypoint.sh postgres -c include_dir=/etc/postgresql/replication-manager.d\""
+prov-app-docker-cmd = "sh -c \"printenv APP_CONFIGURATOR_SCRIPT | sh && echo \\\"include_dir = 'replication-manager.d'\\\" > /etc/postgresql/postgresql.conf && echo \\\"listen_addresses = '*'\\\" >> /etc/postgresql/postgresql.conf && exec docker-entrypoint.sh postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/var/lib/postgresql/data/pgdata/pg_hba.conf -c ident_file=/var/lib/postgresql/data/pgdata/pg_ident.conf\""
 prov-app-docker-img = "postgres:17"
 prov-app-ha-topology = "failover"
 prov-app-memory = "{{config.provAppMemory}}"
