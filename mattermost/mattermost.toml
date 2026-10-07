@@ -48,6 +48,10 @@ prov-app-memory = "{{config.provAppMemory}}"
   [deployment.storages]
     [[deployment.storages.volumes]]
       name = "mattermost-data"
+      # the image runs as user mattermost (2000): the volume directories must be its own,
+      # or config.json cannot be written ("permission denied", pg-active-passive 2026-10-07)
+      user = "2000"
+      group = "2000"
       poolname = "drbd"
       volumedir = "data"
   [[deployment.variables]]
