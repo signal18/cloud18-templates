@@ -8,7 +8,7 @@ app-db-auto-create = true
 prov-app-agents = "{{config.provAppAgents}}"
 prov-app-cpu-cores = "{{config.provAppCpuCores}}"
 prov-app-disk-size = "{{config.provAppDiskSize}}"
-prov-app-docker-img = "mattermost/mattermost-team-edition:10"
+prov-app-docker-img = "mattermost/mattermost-team-edition:release-11"
 prov-app-ha-topology = "failover"
 prov-app-memory = "{{config.provAppMemory}}"
 [deployment]

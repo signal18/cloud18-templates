@@ -1,0 +1,73 @@
+# osTicket, the open source support ticket system, on a MariaDB or MySQL cluster of
+# replication-manager. The database and its user are created by replication-manager on the
+# cluster's primary (app-db-auto-create, {{app.db.*}}) and the image installs osTicket into
+# them at first start; the app reaches the primary through the cluster's HAProxy write port.
+# Attachments are stored in the database by default, so the service carries no volume and
+# can run on any node. First login at /scp: ostadmin / Admin1 (change it).
+app-host = "{{app.name}}"
+app-port = "80"
+app-db-auto-create = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "osticket/osticket:latest"
+prov-app-ha-topology = "flex"
+prov-app-memory = "{{config.provAppMemory}}"
+[deployment]
+  [deployment.Mutex]
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+  [deployment.storages]
+  [[deployment.variables]]
+    locked = false
+    name = "MYSQL_HOST"
+    type = "env"
+    value = "{{proxies.0.name}}"
+  [[deployment.variables]]
+    locked = false
+    name = "MYSQL_PORT"
+    type = "env"
+    value = "{{proxies.0.writePort}}"
+  [[deployment.variables]]
+    locked = false
+    name = "MYSQL_DATABASE"
+    type = "env"
+    value = "{{app.db.schema}}"
+  [[deployment.variables]]
+    locked = false
+    name = "MYSQL_USER"
+    type = "env"
+    value = "{{app.db.user}}"
+  [[deployment.variables]]
+    locked = false
+    name = "MYSQL_PASSWORD"
+    type = "secret"
+    value = "{{app.db.password}}"
+  [[deployment.variables]]
+    locked = false
+    name = "INSTALL_SECRET"
+    type = "secret"
+    value = "{{app.randompassword}}"
+  [[deployment.variables]]
+    locked = false
+    name = "INSTALL_NAME"
+    type = "env"
+    value = "{{app.name}}"
+  [[deployment.variables]]
+    locked = false
+    name = "INSTALL_EMAIL"
+    type = "env"
+    value = "support@{{config.cloud18Domain}}"
+  [[deployment.variables]]
+    locked = false
+    name = "ADMIN_EMAIL"
+    type = "env"
+    value = "admin@{{config.cloud18Domain}}"
+  [[deployment.variables]]
+    locked = true
+    name = "CRON_INTERVAL"
+    type = "env"
+    value = "5"

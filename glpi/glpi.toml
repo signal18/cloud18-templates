@@ -1,28 +1,29 @@
-# WordPress on a MariaDB or MySQL cluster of replication-manager. The database and its user
-# are created by replication-manager on the cluster's primary (app-db-auto-create,
-# {{app.db.*}}); the site reaches the primary through the cluster's HAProxy write port;
-# wp-content (themes, plugins, uploads) lives on a DRBD failover volume. The site is set up
-# at its URL on first visit.
+# GLPI, the IT asset and service management suite (tickets, inventory), on a MariaDB or
+# MySQL cluster of replication-manager. The database and its user are created by
+# replication-manager on the cluster's primary (app-db-auto-create, {{app.db.*}}) and the
+# official image installs GLPI into them at first start; the app reaches the primary through
+# the cluster's HAProxy write port; configuration, files and the marketplace live on a DRBD
+# failover volume. First login: glpi / glpi (change it).
 app-host = "{{app.name}}"
 app-port = "80"
 app-db-auto-create = true
 prov-app-agents = "{{config.provAppAgents}}"
 prov-app-cpu-cores = "{{config.provAppCpuCores}}"
 prov-app-disk-size = "{{config.provAppDiskSize}}"
-prov-app-docker-img = "wordpress:apache"
+prov-app-docker-img = "glpi/glpi:11"
 prov-app-ha-topology = "failover"
 prov-app-memory = "{{config.provAppMemory}}"
 [deployment]
   [deployment.Mutex]
   [[deployment.paths]]
-    dockerpath = "/var/www/html"
+    dockerpath = "/var/glpi"
     level = 0
-    name = "path-volume-wordpress-html"
+    name = "path-volume-glpi-var"
     parentname = ""
-    srcname = "wordpress-data"
-    srcpath = "html/"
+    srcname = "glpi-data"
+    srcpath = "var/"
     srctype = "volume"
-    volumename = "wordpress-data"
+    volumename = "glpi-data"
   [[deployment.routes]]
     cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
     port = "{{app.port}}"
@@ -30,31 +31,36 @@ prov-app-memory = "{{config.provAppMemory}}"
     protocol = "https"
   [deployment.storages]
     [[deployment.storages.volumes]]
-      name = "wordpress-data"
+      name = "glpi-data"
       poolname = "drbd"
       volumedir = "data"
   [[deployment.variables]]
     locked = false
-    name = "WORDPRESS_DB_HOST"
+    name = "GLPI_DB_HOST"
     type = "env"
-    value = "{{proxies.0.name}}:{{proxies.0.writePort}}"
+    value = "{{proxies.0.name}}"
   [[deployment.variables]]
     locked = false
-    name = "WORDPRESS_DB_NAME"
+    name = "GLPI_DB_PORT"
+    type = "env"
+    value = "{{proxies.0.writePort}}"
+  [[deployment.variables]]
+    locked = false
+    name = "GLPI_DB_NAME"
     type = "env"
     value = "{{app.db.schema}}"
   [[deployment.variables]]
     locked = false
-    name = "WORDPRESS_DB_USER"
+    name = "GLPI_DB_USER"
     type = "env"
     value = "{{app.db.user}}"
   [[deployment.variables]]
     locked = false
-    name = "WORDPRESS_DB_PASSWORD"
+    name = "GLPI_DB_PASSWORD"
     type = "secret"
     value = "{{app.db.password}}"
   [[deployment.variables]]
     locked = true
-    name = "WORDPRESS_CONFIG_EXTRA"
+    name = "GLPI_CRONTAB_ENABLED"
     type = "env"
-    value = "if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') { $_SERVER['HTTPS'] = 'on'; }"
+    value = "1"
