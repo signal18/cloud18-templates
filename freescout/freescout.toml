@@ -1,0 +1,80 @@
+# FreeScout, the open source help desk and shared mailbox, on a MariaDB or MySQL cluster of
+# replication-manager. The database and its user are created by replication-manager on the
+# cluster's primary (app-db-auto-create, {{app.db.*}}); the app reaches the primary through
+# the cluster's HAProxy write port; attachments and modules live on a DRBD failover volume.
+# First admin: sign in at /install, or set ADMIN_EMAIL and ADMIN_PASS on the app.
+app-host = "{{app.name}}"
+app-port = "80"
+app-db-auto-create = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "tiredofit/freescout:latest"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+[deployment]
+  [deployment.Mutex]
+  [[deployment.paths]]
+    dockerpath = "/data"
+    level = 0
+    name = "path-volume-freescout-data"
+    parentname = ""
+    srcname = "freescout-data"
+    srcpath = "data/"
+    srctype = "volume"
+    volumename = "freescout-data"
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "freescout-data"
+      poolname = "drbd"
+      volumedir = "data"
+  [[deployment.variables]]
+    locked = true
+    name = "DB_TYPE"
+    type = "env"
+    value = "mysql"
+  [[deployment.variables]]
+    locked = false
+    name = "DB_HOST"
+    type = "env"
+    value = "{{proxies.0.name}}"
+  [[deployment.variables]]
+    locked = false
+    name = "DB_PORT"
+    type = "env"
+    value = "{{proxies.0.writePort}}"
+  [[deployment.variables]]
+    locked = false
+    name = "DB_NAME"
+    type = "env"
+    value = "{{app.db.schema}}"
+  [[deployment.variables]]
+    locked = false
+    name = "DB_USER"
+    type = "env"
+    value = "{{app.db.user}}"
+  [[deployment.variables]]
+    locked = false
+    name = "DB_PASS"
+    type = "secret"
+    value = "{{app.db.password}}"
+  [[deployment.variables]]
+    locked = false
+    name = "SITE_URL"
+    type = "env"
+    value = "https://{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+  [[deployment.variables]]
+    locked = true
+    name = "ENABLE_SSL_PROXY"
+    type = "env"
+    value = "TRUE"
+  [[deployment.variables]]
+    locked = true
+    name = "TIMEZONE"
+    type = "env"
+    value = "UTC"

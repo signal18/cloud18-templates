@@ -1,0 +1,60 @@
+# WordPress on a MariaDB or MySQL cluster of replication-manager. The database and its user
+# are created by replication-manager on the cluster's primary (app-db-auto-create,
+# {{app.db.*}}); the site reaches the primary through the cluster's HAProxy write port;
+# wp-content (themes, plugins, uploads) lives on a DRBD failover volume. The site is set up
+# at its URL on first visit.
+app-host = "{{app.name}}"
+app-port = "80"
+app-db-auto-create = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "wordpress:6-apache"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+[deployment]
+  [deployment.Mutex]
+  [[deployment.paths]]
+    dockerpath = "/var/www/html"
+    level = 0
+    name = "path-volume-wordpress-html"
+    parentname = ""
+    srcname = "wordpress-data"
+    srcpath = "html/"
+    srctype = "volume"
+    volumename = "wordpress-data"
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "wordpress-data"
+      poolname = "drbd"
+      volumedir = "data"
+  [[deployment.variables]]
+    locked = false
+    name = "WORDPRESS_DB_HOST"
+    type = "env"
+    value = "{{proxies.0.name}}:{{proxies.0.writePort}}"
+  [[deployment.variables]]
+    locked = false
+    name = "WORDPRESS_DB_NAME"
+    type = "env"
+    value = "{{app.db.schema}}"
+  [[deployment.variables]]
+    locked = false
+    name = "WORDPRESS_DB_USER"
+    type = "env"
+    value = "{{app.db.user}}"
+  [[deployment.variables]]
+    locked = false
+    name = "WORDPRESS_DB_PASSWORD"
+    type = "secret"
+    value = "{{app.db.password}}"
+  [[deployment.variables]]
+    locked = true
+    name = "WORDPRESS_CONFIG_EXTRA"
+    type = "env"
+    value = "if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') { $_SERVER['HTTPS'] = 'on'; }"
