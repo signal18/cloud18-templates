@@ -10,6 +10,8 @@
 # This file: erpnext-worker.
 app-host = "{{app.name}}"
 app-port = "8001"
+# background process, listens on nothing: the monitor pings the host (#1919)
+app-monitor-mode = "ping"
 prov-app-agents = "{{config.provAppAgents}}"
 prov-app-cpu-cores = "{{config.provAppCpuCores}}"
 prov-app-disk-size = "{{config.provAppDiskSize}}"
