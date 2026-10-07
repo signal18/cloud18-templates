@@ -33,6 +33,12 @@ prov-app-ha-topology = "failover"
     port = "9001"
     primary = true
     protocol = "https"
+    # the route's root is the S3 API and answers 403 AccessDenied to an anonymous GET; the
+    # monitor must read the health endpoint, or the app flaps Suspect/Failed every half hour
+    # (curepipe rustfs1, 2026-10-07)
+    [deployment.routes.monitor]
+      path = "/health"
+      expect-status = "200"
 
   [deployment.storages]
     [[deployment.storages.volumes]]
