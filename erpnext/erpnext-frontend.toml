@@ -36,6 +36,11 @@ prov-app-ha-topology = "failover"
     port = "8080"
     primary = true
     protocol = "https"
+    # the monitor reads the fast ping endpoint: "/" renders the full page through the
+    # backend (3 to 6 s on first renders) and tripped the check timeout (curepipe 2026-10-07)
+    [deployment.routes.monitor]
+      path = "/api/method/ping"
+      expect-status = "200"
 
   [deployment.storages]
     [[deployment.storages.volumes]]
