@@ -27,7 +27,7 @@ prov-app-ha-topology = "failover"
     locked = true
     name = "FRAPPE_SITE"
     type = "env"
-    value = "erpnext"
+    value = "frontend"
 
   [[deployment.variables]]
     locked = false
