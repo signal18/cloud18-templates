@@ -1,0 +1,47 @@
+# Grav, the flat-file CMS: no database, the site, its pages, themes and plugins live on a
+# DRBD failover volume. The admin plugin is included in the image; the first visit of
+# /admin creates the first user.
+app-host = "{{app.name}}"
+app-port = "80"
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "lscr.io/linuxserver/grav:latest"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+[deployment]
+  [deployment.Mutex]
+  [[deployment.paths]]
+    dockerpath = "/config"
+    level = 0
+    name = "path-volume-grav-config"
+    parentname = ""
+    srcname = "grav-data"
+    srcpath = "config/"
+    srctype = "volume"
+    volumename = "grav-data"
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "grav-data"
+      poolname = "drbd"
+      volumedir = "data"
+  [[deployment.variables]]
+    locked = true
+    name = "PUID"
+    type = "env"
+    value = "1000"
+  [[deployment.variables]]
+    locked = true
+    name = "PGID"
+    type = "env"
+    value = "1000"
+  [[deployment.variables]]
+    locked = true
+    name = "TZ"
+    type = "env"
+    value = "UTC"
