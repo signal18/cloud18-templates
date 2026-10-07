@@ -9,7 +9,7 @@ app-db-auto-create = true
 prov-app-agents = "{{config.provAppAgents}}"
 prov-app-cpu-cores = "{{config.provAppCpuCores}}"
 prov-app-disk-size = "{{config.provAppDiskSize}}"
-prov-app-docker-img = "tiredofit/freescout:latest"
+prov-app-docker-img = "nfrastack/freescout:latest"
 prov-app-ha-topology = "failover"
 prov-app-memory = "{{config.provAppMemory}}"
 [deployment]
