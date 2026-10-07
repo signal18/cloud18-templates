@@ -1,0 +1,77 @@
+# Mattermost Team Edition on a PostgreSQL cluster of replication-manager.
+# The database and its role are created by replication-manager on the cluster's primary
+# (app-db-auto-create, {{app.db.*}}), the app reaches the primary through the cluster's
+# HAProxy write port; the data volume keeps files, plugins and config.
+app-host = "{{app.name}}"
+app-port = "8065"
+app-db-auto-create = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "mattermost/mattermost-team-edition:10"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+[deployment]
+  [deployment.Mutex]
+  [[deployment.paths]]
+    dockerpath = "/mattermost/data"
+    level = 0
+    name = "path-volume-mattermost-data"
+    parentname = ""
+    srcname = "mattermost-data"
+    srcpath = "data/"
+    srctype = "volume"
+    volumename = "mattermost-data"
+  [[deployment.paths]]
+    dockerpath = "/mattermost/config"
+    level = 0
+    name = "path-volume-mattermost-config"
+    parentname = ""
+    srcname = "mattermost-data"
+    srcpath = "config/"
+    srctype = "volume"
+    volumename = "mattermost-data"
+  [[deployment.paths]]
+    dockerpath = "/mattermost/plugins"
+    level = 0
+    name = "path-volume-mattermost-plugins"
+    parentname = ""
+    srcname = "mattermost-data"
+    srcpath = "plugins/"
+    srctype = "volume"
+    volumename = "mattermost-data"
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "mattermost-data"
+      poolname = "drbd"
+      volumedir = "data"
+  [[deployment.variables]]
+    locked = true
+    name = "MM_SQLSETTINGS_DRIVERNAME"
+    type = "env"
+    value = "postgres"
+  [[deployment.variables]]
+    locked = false
+    name = "MM_SQLSETTINGS_DATASOURCE"
+    type = "secret"
+    value = "postgres://{{app.db.user}}:{{app.db.password}}@{{proxies.0.name}}:{{proxies.0.writePort}}/{{app.db.schema}}?sslmode=disable&connect_timeout=10"
+  [[deployment.variables]]
+    locked = false
+    name = "MM_SERVICESETTINGS_SITEURL"
+    type = "env"
+    value = "https://{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+  [[deployment.variables]]
+    locked = true
+    name = "MM_SERVICESETTINGS_LISTENADDRESS"
+    type = "env"
+    value = ":8065"
+  [[deployment.variables]]
+    locked = true
+    name = "TZ"
+    type = "env"
+    value = "UTC"
