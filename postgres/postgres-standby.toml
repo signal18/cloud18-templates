@@ -30,6 +30,9 @@ prov-app-memory = "{{config.provAppMemory}}"
   [deployment.storages]
     [[deployment.storages.volumes]]
       name = "postgres-data"
+      # the cluster places a replicated member on ONE agent and its volume on the
+      # cluster's data pool (prov-db-volume-data): own data, no failover move; drbd
+      # here is the template default, replaced at render (replication-manager #1925)
       poolname = "drbd"
       volumedir = "data"
   [[deployment.variables]]
