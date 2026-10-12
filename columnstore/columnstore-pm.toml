@@ -37,8 +37,17 @@ prov-app-memory = "{{config.provAppMemory}}"
     srcpath = "columnstore/"
     srctype = "volume"
     volumename = "columnstore-data"
+  [[deployment.paths]]
+    dockerpath = "/etc/columnstore"
+    level = 0
+    name = "path-volume-columnstore-etc"
+    parentname = ""
+    srcname = "columnstore-data"
+    srcpath = "columnstore-etc/"
+    srctype = "volume"
+    volumename = "columnstore-data"
   [deployment.storages]
     [[deployment.storages.volumes]]
       name = "columnstore-data"
       poolname = "drbd"
-      volumedir = "mysql columnstore"
+      volumedir = "mysql columnstore columnstore-etc"
