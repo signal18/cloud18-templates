@@ -5,6 +5,11 @@
 # PMs, but part of the database: it gets the cluster's root password like the UM
 # (prov-app-db-credentials). The image starts ColumnStore's processes before the server
 # (signal18/mariadb-columnstore, docker/columnstore in replication-manager).
+# /dev/shm on a volume of the OpenSVC shm pool (replication-manager #2007): ColumnStore keeps its
+# BRM in shared memory, and Docker's 64 MB default is 87% used by a 2-node cluster (a third
+# node's load_brm failed, No space left on device). Local to each node, the BRM is reloaded
+# from the data volume at start; 1 GB is the cap, not a reservation. dirperm 777, not 1777:
+# a remounted tmpfs loses the sticky bit and the failover service goes warn.
 # Reachable from the cluster network only (no route): ColumnStore inter-node ports
 # 8600-8630, 8700, 8800 and CMAPI 8640 on the PM's service address.
 app-host = "{{app.name}}"
@@ -46,8 +51,25 @@ prov-app-memory = "{{config.provAppMemory}}"
     srcpath = "columnstore-etc/"
     srctype = "volume"
     volumename = "columnstore-data"
+  [[deployment.paths]]
+    dockerpath = "/dev/shm"
+    level = 0
+    name = "path-volume-columnstore-shm"
+    parentname = ""
+    srcname = "columnstore-shm"
+    srcpath = "shm/"
+    srctype = "volume"
+    volumename = "columnstore-shm"
   [deployment.storages]
     [[deployment.storages.volumes]]
       name = "columnstore-data"
       poolname = "drbd"
       volumedir = "mysql columnstore columnstore-etc"
+    [[deployment.storages.volumes]]
+      name = "columnstore-shm"
+      poolname = "shm"
+      size = "1"
+      volumedir = "shm"
+      user = "999"
+      group = "999"
+      dirperm = "777"
