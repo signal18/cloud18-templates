@@ -1,0 +1,181 @@
+# RustFS, S3 object storage (Apache 2.0, MinIO compatible) with the Cloud18 SSO: the cluster's S3 provider,
+# reached by a registered replication-manager without keys. One instance that owns its data volume, failover
+# topology. The S3 API answers on {{app.name}}.{{name}}.svc.cloud18:9000 inside the cluster network only, the web
+# console is on the https route under the path /rustfs/console/ (the route's root answers the S3 API: 403
+# AccessDenied is normal there). Stateful (DBU) and S3 provider (its volume is producer BAU). The root secret is a
+# plain default, change it at add time; other apps mount its buckets through s3-mounts.
+#
+# SSO: RustFS trusts the GitLab replication-manager logs in to (api-oauth-provider) for the application of its
+# Cloud18 SSO (cloud18-sso-client-id). replication-manager trades that GitLab identity token at this RustFS's STS
+# (AssumeRoleWithWebIdentity, at the S3 API root) for short-lived keys: an S3 provider with cloud18Sso on (the
+# cloud18 provider of a registered instance, whose backup-streaming-endpoint is this app). Set at add time:
+#   - RUSTFS_IDENTITY_OPENID_CONFIG_URL: the GitLab URL, the value of api-oauth-provider;
+#   - RUSTFS_IDENTITY_OPENID_CLIENT_ID: the GitLab application id, the value of cloud18-sso-client-id;
+#   - RUSTFS_IDENTITY_OPENID_CLIENT_SECRET: that application's secret (only the console login uses it);
+#   - the policy named by RUSTFS_IDENTITY_OPENID_ROLE_POLICY, created once in RustFS after the first start
+#     (PUT /rustfs/admin/v3/add-canned-policy?name=repman-sso with the root keys), e.g. read/write limited to the
+#     bucket folder named after the token's sub, the folder replication-manager writes in:
+#       {"Version":"2012-10-17","Statement":[
+#         {"Effect":"Allow","Action":["s3:GetBucketLocation","s3:ListBucket","s3:ListBucketMultipartUploads"],
+#          "Resource":["arn:aws:s3:::<bucket>"],"Condition":{"StringLike":{"s3:prefix":["${jwt:sub}","${jwt:sub}/*"]}}},
+#         {"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject","s3:AbortMultipartUpload",
+#          "s3:ListMultipartUploadParts"],"Resource":["arn:aws:s3:::<bucket>/${jwt:sub}/*"]}]}
+# The console login through GitLab also needs the redirect URI below registered on the GitLab application.
+app-host = "{{app.name}}"
+app-port = "9000"
+app-stateful = true
+app-s3-provider = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-memory = "{{config.provAppMemory}}"
+prov-app-docker-img = "rustfs/rustfs:latest"
+prov-app-ha-topology = "failover"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.paths]]
+    dockerpath = "/data"
+    level = 0
+    name = "path-volume-rustfs-data"
+    parentname = ""
+    srcname = "rustfs-data"
+    srcpath = "data/"
+    srctype = "volume"
+    volumename = "rustfs-data"
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "9001"
+    primary = true
+    protocol = "https"
+    # the route's root is the S3 API and answers 403 AccessDenied to an anonymous GET; the
+    # monitor must read the health endpoint, or the app flaps Suspect/Failed every half hour
+    # (curepipe rustfs1, 2026-10-07)
+    [deployment.routes.monitor]
+      path = "/health"
+      expect-status = "200"
+
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "rustfs-data"
+      poolname = "drbd"
+      volumedir = "data"
+      user = "10001"
+      group = "10001"
+      dirperm = "0750"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_ACCESS_KEY"
+    type = "env"
+    value = "admin"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_SECRET_KEY"
+    type = "secret"
+    value = "rustfsadmin-change-me"
+
+  [[deployment.variables]]
+    locked = true
+    name = "RUSTFS_VOLUMES"
+    type = "env"
+    value = "/data"
+
+  [[deployment.variables]]
+    locked = true
+    name = "RUSTFS_ADDRESS"
+    type = "env"
+    value = "0.0.0.0:9000"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_CONSOLE_ENABLE"
+    type = "env"
+    value = "true"
+
+  [[deployment.variables]]
+    locked = true
+    name = "RUSTFS_CONSOLE_ADDRESS"
+    type = "env"
+    value = "0.0.0.0:9001"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_REGION"
+    type = "env"
+    value = "eu-west-1"
+
+  [[deployment.variables]]
+    locked = true
+    name = "RUSTFS_IDENTITY_OPENID_ENABLE"
+    type = "env"
+    value = "on"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_IDENTITY_OPENID_CONFIG_URL"
+    type = "env"
+    value = "https://gitlab.example.com"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_IDENTITY_OPENID_CLIENT_ID"
+    type = "env"
+    value = "gitlab-application-id-change-me"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_IDENTITY_OPENID_CLIENT_SECRET"
+    type = "secret"
+    value = "gitlab-application-secret-change-me"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_IDENTITY_OPENID_SCOPES"
+    type = "env"
+    value = "openid,profile,email"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_IDENTITY_OPENID_USERNAME_CLAIM"
+    type = "env"
+    value = "preferred_username"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_IDENTITY_OPENID_EMAIL_CLAIM"
+    type = "env"
+    value = "email"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_IDENTITY_OPENID_ROLE_POLICY"
+    type = "env"
+    value = "repman-sso"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_IDENTITY_OPENID_DISPLAY_NAME"
+    type = "env"
+    value = "Cloud18 GitLab"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_BROWSER_REDIRECT_URL"
+    type = "env"
+    value = "https://{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_IDENTITY_OPENID_REDIRECT_URI"
+    type = "env"
+    value = "https://{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io/rustfs/admin/v3/oidc/callback/default"
+
+  [[deployment.variables]]
+    locked = true
+    name = "RUSTFS_IDENTITY_OPENID_REDIRECT_URI_DYNAMIC"
+    type = "env"
+    value = "off"
