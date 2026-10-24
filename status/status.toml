@@ -12,9 +12,10 @@
 # removes only the monitors it created (description "managed by kuma-sync (<cluster>)");
 # monitors added in Kuma by hand are left alone. A failed API read changes nothing.
 #
-# Set REPMAN_API_URL to the replication-manager API (its public URL, e.g. https://repman.example.com)
-# and REPMAN_API_TOKEN to a replication-manager API token with read access to this cluster
-# (user pill > API tokens); without it Kuma runs and the sync waits. KUMA_ADMIN_PASSWORD is
+# REPMAN_API_URL and REPMAN_API_TOKEN come from replication-manager ({{app.api.url}},
+# {{app.api.token}}, replication-manager #2158): the token is minted when the app is added,
+# read-only and scoped to this cluster, listed in the admin user's API tokens, renewed at
+# provision before it expires and revoked when the app is removed. KUMA_ADMIN_PASSWORD is
 # the admin created at the first start (the sync does Kuma's setup): read it in the app's
 # variables to log in; changing it later changes nothing, change it in Kuma.
 app-host = "{{app.name}}"
@@ -48,7 +49,7 @@ prov-app-memory = "{{config.provAppMemory}}"
       expect-status = "200"
   [deployment.storages]
     [[deployment.storages.git-clones]]
-      branch = "main"
+      branch = "app-api-token-2158"
       name = "status-sync"
       pass = ""
       repo = "github.com/signal18/cloud18-template-code.git"
@@ -104,12 +105,12 @@ prov-app-memory = "{{config.provAppMemory}}"
     locked = false
     name = "REPMAN_API_URL"
     type = "env"
-    value = ""
+    value = "{{app.api.url}}"
   [[deployment.variables]]
     locked = false
     name = "REPMAN_API_TOKEN"
     type = "secret"
-    value = ""
+    value = "{{app.api.token}}"
   [[deployment.variables]]
     locked = false
     name = "REPMAN_CLUSTER"
