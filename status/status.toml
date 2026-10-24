@@ -17,8 +17,13 @@
 # its certificate self-signed: REPMAN_API_TLS_VERIFY = false): the token is minted when the app is added,
 # read-only and scoped to this cluster, listed in the admin user's API tokens, renewed at
 # provision before it expires and revoked when the app is removed. KUMA_ADMIN_PASSWORD is
-# the admin created at the first start (the sync does Kuma's setup): read it in the app's
-# variables to log in; changing it later changes nothing, change it in Kuma.
+# the admin created at the first start (the sync does Kuma's setup and uses it).
+#
+# SSO: with OIDC_CLIENT_SECRET set (the identity provider's client OIDC_CLIENT_ID, redirect
+# SSO_REDIRECT_URL), oauth2-proxy guards the page and sends straight to the Cloud18 login;
+# only the cluster's users holding cluster-show-routes in replication-manager get in (the
+# sync reads them every SYNC_INTERVAL), and Kuma's own login is off. Without the secret,
+# Kuma's own login (KUMA_ADMIN_USER / KUMA_ADMIN_PASSWORD) guards the page.
 app-host = "{{app.name}}"
 app-port = "3001"
 app-db-auto-create = true
@@ -117,6 +122,26 @@ prov-app-memory = "{{config.provAppMemory}}"
     name = "REPMAN_API_TLS_VERIFY"
     type = "env"
     value = "false"
+  [[deployment.variables]]
+    locked = false
+    name = "OIDC_ISSUER_URL"
+    type = "env"
+    value = "https://identity.cloud18.io/realms/cloud18"
+  [[deployment.variables]]
+    locked = false
+    name = "OIDC_CLIENT_ID"
+    type = "env"
+    value = "{{app.name}}-{{name}}"
+  [[deployment.variables]]
+    locked = false
+    name = "OIDC_CLIENT_SECRET"
+    type = "secret"
+    value = ""
+  [[deployment.variables]]
+    locked = false
+    name = "SSO_REDIRECT_URL"
+    type = "env"
+    value = "https://{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io/oauth2/callback"
   [[deployment.variables]]
     locked = false
     name = "REPMAN_CLUSTER"
