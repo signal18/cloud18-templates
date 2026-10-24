@@ -1,0 +1,108 @@
+# Keycloak, the identity provider (OpenID Connect, SAML): one instance, failover topology. All its state (realms,
+# users, clients, sessions) is in the cluster's MariaDB through the proxy, so it needs no volume: the schema, user and
+# password are created by the cluster at provision (app.db.* keys, app-db-auto-create), never on an existing schema or
+# user, and Keycloak creates its tables at first start. The admin console and the OpenID endpoints are on the https
+# route (issuer https://<route>/realms/<realm>); the gateway terminates TLS and Keycloak trusts its X-Forwarded headers.
+#
+# The bootstrap admin (KC_BOOTSTRAP_ADMIN_*) is created at the first start only, when the master realm has no admin:
+# change its password at add time, and replace it by a permanent admin from the console once logged in (changing the
+# variable later changes nothing). One instance: KC_CACHE = local (no cluster of Keycloak nodes, no Infinispan
+# discovery). The route monitor reads /realms/master (200): the health endpoints answer on the management port 9000
+# only, not on the route.
+#
+# Other apps and replication-manager instances use it as their OpenID provider: a realm (e.g. cloud18), a client per
+# application, GitLab or Forgejo as an identity provider of the realm for people to log in with their account.
+app-host = "{{app.name}}"
+app-port = "8080"
+app-db-auto-create = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "quay.io/keycloak/keycloak:26.8"
+prov-app-docker-cmd = "start"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+    [deployment.routes.monitor]
+      path = "/realms/master"
+      expect-status = "200"
+
+  [[deployment.variables]]
+    locked = true
+    name = "KC_DB"
+    type = "env"
+    value = "mariadb"
+
+  [[deployment.variables]]
+    locked = false
+    name = "KC_DB_URL"
+    type = "env"
+    value = "jdbc:mariadb://{{proxies.0.name}}:{{proxies.0.writePort}}/{{app.db.schema}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "KC_DB_USERNAME"
+    type = "env"
+    value = "{{app.db.user}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "KC_DB_PASSWORD"
+    type = "secret"
+    value = "{{app.db.password}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "KC_HOSTNAME"
+    type = "env"
+    value = "https://{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+
+  [[deployment.variables]]
+    locked = true
+    name = "KC_HTTP_ENABLED"
+    type = "env"
+    value = "true"
+
+  [[deployment.variables]]
+    locked = true
+    name = "KC_HTTP_PORT"
+    type = "env"
+    value = "8080"
+
+  [[deployment.variables]]
+    locked = true
+    name = "KC_PROXY_HEADERS"
+    type = "env"
+    value = "xforwarded"
+
+  [[deployment.variables]]
+    locked = false
+    name = "KC_HEALTH_ENABLED"
+    type = "env"
+    value = "true"
+
+  [[deployment.variables]]
+    locked = false
+    name = "KC_CACHE"
+    type = "env"
+    value = "local"
+
+  [[deployment.variables]]
+    locked = false
+    name = "KC_BOOTSTRAP_ADMIN_USERNAME"
+    type = "env"
+    value = "admin"
+
+  [[deployment.variables]]
+    locked = false
+    name = "KC_BOOTSTRAP_ADMIN_PASSWORD"
+    type = "secret"
+    value = "keycloak-admin-change-me"
