@@ -53,6 +53,11 @@ prov-app-memory = "{{config.provAppMemory}}"
       name = "openbao-data"
       poolname = "drbd"
       volumedir = "data"
+      # the image runs as openbao (uid 100, gid 1000): a root-owned volume refuses the Raft files
+      # (crm vault1, 2026-10-24: "failed to open bolt file: permission denied")
+      user = "100"
+      group = "1000"
+      dirperm = "0750"
 
   [[deployment.variables]]
     locked = false
