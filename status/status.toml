@@ -13,7 +13,8 @@
 # monitors added in Kuma by hand are left alone. A failed API read changes nothing.
 #
 # REPMAN_API_URL and REPMAN_API_TOKEN come from replication-manager ({{app.api.url}},
-# {{app.api.token}}, replication-manager #2158): the token is minted when the app is added,
+# {{app.api.token}}, replication-manager #2158; the URL is replication-manager's internal address,
+# its certificate self-signed: REPMAN_API_TLS_VERIFY = false): the token is minted when the app is added,
 # read-only and scoped to this cluster, listed in the admin user's API tokens, renewed at
 # provision before it expires and revoked when the app is removed. KUMA_ADMIN_PASSWORD is
 # the admin created at the first start (the sync does Kuma's setup): read it in the app's
@@ -111,6 +112,11 @@ prov-app-memory = "{{config.provAppMemory}}"
     name = "REPMAN_API_TOKEN"
     type = "secret"
     value = "{{app.api.token}}"
+  [[deployment.variables]]
+    locked = false
+    name = "REPMAN_API_TLS_VERIFY"
+    type = "env"
+    value = "false"
   [[deployment.variables]]
     locked = false
     name = "REPMAN_CLUSTER"
