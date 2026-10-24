@@ -1,0 +1,126 @@
+# Status: Uptime Kuma 2 monitoring every internal address of the cluster (namespace), kept up
+# to date from replication-manager. One instance, failover topology; Kuma's state (monitors,
+# history, users) is in the cluster's MariaDB through the proxy: the schema, user and password
+# are created by the cluster at provision (app.db.* keys, app-db-auto-create).
+#
+# kuma-sync (cloned from cloud18-template-code/status, started next to Kuma by start.sh) reads
+# the cluster's apps, database servers and proxies from the replication-manager API every
+# SYNC_INTERVAL seconds and keeps one Kuma monitor per internal address: an app on each http
+# route the way replication-manager checks it (the route monitor's path and expected status,
+# on the app's internal host and port), a tcp route or an app without route on its port, a
+# database server on its port, a proxy on its write and read ports. It adds, changes and
+# removes only the monitors it created (description "managed by kuma-sync (<cluster>)");
+# monitors added in Kuma by hand are left alone. A failed API read changes nothing.
+#
+# Set REPMAN_API_TOKEN to a replication-manager API token with read access to this cluster
+# (user pill > API tokens); without it Kuma runs and the sync waits. KUMA_ADMIN_PASSWORD is
+# the admin created at the first start (the sync does Kuma's setup): read it in the app's
+# variables to log in; changing it later changes nothing, change it in Kuma.
+app-host = "{{app.name}}"
+app-port = "3001"
+app-db-auto-create = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-cmd = "sh /sync/start.sh"
+prov-app-docker-img = "louislam/uptime-kuma:2.5.6"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+[deployment]
+  [deployment.Mutex]
+  [[deployment.paths]]
+    dockerpath = "/sync/"
+    level = 0
+    name = "path-git-status-sync"
+    parentname = ""
+    srcname = "status-sync"
+    srcpath = "var/status-sync/status/"
+    srctype = "git"
+    volumename = "local-data-directory"
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+    [deployment.routes.monitor]
+      path = "/api/entry-page"
+      expect-status = "200"
+  [deployment.storages]
+    [[deployment.storages.git-clones]]
+      branch = "main"
+      name = "status-sync"
+      pass = ""
+      repo = "github.com/signal18/cloud18-template-code.git"
+      timeout = 0
+      user = ""
+      volumedir = "var/status-sync"
+      volumename = "local-data-directory"
+    [[deployment.storages.volumes]]
+      name = "local-data-directory"
+      poolname = "tank"
+      volumedir = "var"
+  [[deployment.variables]]
+    locked = true
+    name = "UPTIME_KUMA_DB_TYPE"
+    type = "env"
+    value = "mariadb"
+  [[deployment.variables]]
+    locked = false
+    name = "UPTIME_KUMA_DB_HOSTNAME"
+    type = "env"
+    value = "{{proxies.0.name}}"
+  [[deployment.variables]]
+    locked = false
+    name = "UPTIME_KUMA_DB_PORT"
+    type = "env"
+    value = "{{proxies.0.writePort}}"
+  [[deployment.variables]]
+    locked = false
+    name = "UPTIME_KUMA_DB_NAME"
+    type = "env"
+    value = "{{app.db.schema}}"
+  [[deployment.variables]]
+    locked = false
+    name = "UPTIME_KUMA_DB_USERNAME"
+    type = "env"
+    value = "{{app.db.user}}"
+  [[deployment.variables]]
+    locked = false
+    name = "UPTIME_KUMA_DB_PASSWORD"
+    type = "secret"
+    value = "{{app.db.password}}"
+  [[deployment.variables]]
+    locked = false
+    name = "KUMA_ADMIN_USER"
+    type = "env"
+    value = "admin"
+  [[deployment.variables]]
+    locked = false
+    name = "KUMA_ADMIN_PASSWORD"
+    type = "secret"
+    value = "{{app.randompassword}}"
+  [[deployment.variables]]
+    locked = false
+    name = "REPMAN_API_URL"
+    type = "env"
+    value = "{{config.apiPublicUrl}}"
+  [[deployment.variables]]
+    locked = false
+    name = "REPMAN_API_TOKEN"
+    type = "secret"
+    value = ""
+  [[deployment.variables]]
+    locked = false
+    name = "REPMAN_CLUSTER"
+    type = "env"
+    value = "{{name}}"
+  [[deployment.variables]]
+    locked = false
+    name = "SELF_HOST"
+    type = "env"
+    value = "{{app.name}}.{{name}}.svc.cloud18"
+  [[deployment.variables]]
+    locked = false
+    name = "SYNC_INTERVAL"
+    type = "env"
+    value = "60"
