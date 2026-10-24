@@ -1,0 +1,67 @@
+# OpenBao, the secrets manager (MPL 2.0 fork of HashiCorp Vault, same API): one instance that owns its data volume,
+# failover topology, integrated Raft storage on the volume. The API and the web UI are on the https route; the gateway
+# terminates TLS (listener without TLS inside the cluster network).
+#
+# Unseal: the static seal (Auto Unseal) with the 32-byte key of BAO_STATIC_SEAL_KEY (base64 or hex), so a restart or a
+# failover unseals by itself. Set it at add time (openssl rand -base64 32) and keep it: without it the data cannot be
+# read. The default value is deliberately invalid, the server refuses to start until it is set. Rotation:
+# previous_key / previous_key_id in the seal stanza.
+# Once started, initialise it once (bao operator init): with Auto Unseal it returns recovery keys and the root token;
+# keep both outside the app (an OpenSVC secret).
+#
+# replication-manager reads it as a Vault (vault-server-addr, vault-mode = config_store_v2): a KV v2 engine mounted at
+# "kv" (vault-mount), a secret value that is a path is read at that path, the field named after the setting
+# (db-servers-credential = "user:password", replication-credential, ...); vault-auth approle (vault-role-id,
+# vault-secret-id). People log in with OpenID Connect (oidc auth method, e.g. the Cloud18 Keycloak realm).
+app-host = "{{app.name}}"
+app-port = "8200"
+app-stateful = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "quay.io/openbao/openbao:2.7"
+prov-app-docker-cmd = "server"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.paths]]
+    dockerpath = "/openbao/data"
+    level = 0
+    name = "path-volume-openbao-data"
+    parentname = ""
+    srcname = "openbao-data"
+    srcpath = "data/"
+    srctype = "volume"
+    volumename = "openbao-data"
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+    # sys/health answers 501 before the init and 503 sealed: the monitor accepts both as up (the app runs; the
+    # operator initialises it once), 200 when active
+    [deployment.routes.monitor]
+      path = "/v1/sys/health?uninitcode=200&sealedcode=200&standbyok=true"
+      expect-status = "200"
+
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "openbao-data"
+      poolname = "drbd"
+      volumedir = "data"
+
+  [[deployment.variables]]
+    locked = false
+    name = "BAO_LOCAL_CONFIG"
+    type = "env"
+    value = '{"ui": true, "disable_mlock": true, "api_addr": "https://{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io", "cluster_addr": "http://{{app.name}}.{{name}}.svc.cloud18:8201", "listener": [{"tcp": {"address": "0.0.0.0:8200", "cluster_address": "0.0.0.0:8201", "tls_disable": true}}], "storage": {"raft": {"path": "/openbao/data", "node_id": "{{app.name}}"}}, "seal": {"static": {"current_key_id": "static-1", "current_key": "env://BAO_STATIC_SEAL_KEY"}}}'
+
+  [[deployment.variables]]
+    locked = false
+    name = "BAO_STATIC_SEAL_KEY"
+    type = "secret"
+    value = "openbao-static-seal-key-change-me"
