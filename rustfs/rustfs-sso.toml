@@ -1,26 +1,36 @@
-# RustFS, S3 object storage (Apache 2.0, MinIO compatible) with the Cloud18 SSO: the cluster's S3 provider,
-# reached by a registered replication-manager without keys. One instance that owns its data volume, failover
-# topology. The S3 API answers on {{app.name}}.{{name}}.svc.cloud18:9000 inside the cluster network only, the web
-# console is on the https route under the path /rustfs/console/ (the route's root answers the S3 API: 403
-# AccessDenied is normal there). Stateful (DBU) and S3 provider (its volume is producer BAU). The root secret is a
-# plain default, change it at add time; other apps mount its buckets through s3-mounts.
+# RustFS, S3 object storage (Apache 2.0, MinIO compatible) with single sign-on: the cluster's S3 provider. One
+# instance that owns its data volume, failover topology. The S3 API answers on {{app.name}}.{{name}}.svc.cloud18:9000
+# inside the cluster network only, the web console is on the https route under the path /rustfs/console/ (the
+# route's root answers the S3 API: 403 AccessDenied is normal there). Stateful (DBU) and S3 provider (its volume is
+# producer BAU). The root secret is a plain default, change it at add time; other apps mount its buckets through
+# s3-mounts.
 #
-# SSO: RustFS trusts the GitLab replication-manager logs in to (api-oauth-provider) for the application of its
-# Cloud18 SSO (cloud18-sso-client-id). replication-manager trades that GitLab identity token at this RustFS's STS
-# (AssumeRoleWithWebIdentity, at the S3 API root) for short-lived keys: an S3 provider with cloud18Sso on (the
-# cloud18 provider of a registered instance, whose backup-streaming-endpoint is this app). Set at add time:
-#   - RUSTFS_IDENTITY_OPENID_CONFIG_URL: the GitLab URL, the value of api-oauth-provider;
-#   - RUSTFS_IDENTITY_OPENID_CLIENT_ID: the GitLab application id, the value of cloud18-sso-client-id;
-#   - RUSTFS_IDENTITY_OPENID_CLIENT_SECRET: that application's secret (only the console login uses it);
-#   - the policy named by RUSTFS_IDENTITY_OPENID_ROLE_POLICY, created once in RustFS after the first start
-#     (PUT /rustfs/admin/v3/add-canned-policy?name=repman-sso with the root keys), e.g. read/write limited to the
-#     bucket folder named after the token's sub, the folder replication-manager writes in:
+# SSO: people log in to the console through an OpenID Connect provider (GitLab, Forgejo, ...), and S3 clients trade
+# the provider's identity token at RustFS's STS (AssumeRoleWithWebIdentity, at the S3 API root) for short-lived keys.
+# Set at add time:
+#   - RUSTFS_IDENTITY_OPENID_CONFIG_URL: the provider's issuer URL, exactly as its discovery document declares it
+#     (no trailing slash: RustFS compares the two);
+#   - RUSTFS_IDENTITY_OPENID_CLIENT_ID / _CLIENT_SECRET: an OAuth2 application of the provider whose redirect URI is
+#     RUSTFS_IDENTITY_OPENID_REDIRECT_URI below.
+# Rights come from two token claims, each naming a RustFS policy that must exist (RustFS 1.0.3 resolves no policy
+# variable such as ${jwt:sub} for SSO sessions, so each policy holds literal resources):
+#   - sub (RUSTFS_IDENTITY_OPENID_CLAIM_NAME): the policy named after the user id gives the user's own buckets, e.g.
+#     policy "42" for user ahmad:
 #       {"Version":"2012-10-17","Statement":[
-#         {"Effect":"Allow","Action":["s3:GetBucketLocation","s3:ListBucket","s3:ListBucketMultipartUploads"],
-#          "Resource":["arn:aws:s3:::<bucket>"],"Condition":{"StringLike":{"s3:prefix":["${jwt:sub}","${jwt:sub}/*"]}}},
+#         {"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketPolicyStatus","s3:CreateBucket"],
+#          "Resource":["arn:aws:s3:::*"]},
+#         {"Effect":"Allow","Action":["s3:ListBucket","s3:GetBucketLocation","s3:ListBucketMultipartUploads",
+#          "s3:DeleteBucket"],"Resource":["arn:aws:s3:::ahmad","arn:aws:s3:::ahmad-*"]},
 #         {"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject","s3:AbortMultipartUpload",
-#          "s3:ListMultipartUploadParts"],"Resource":["arn:aws:s3:::<bucket>/${jwt:sub}/*"]}]}
-# The console login through GitLab also needs the redirect URI below registered on the GitLab application.
+#          "s3:ListMultipartUploadParts"],"Resource":["arn:aws:s3:::ahmad/*","arn:aws:s3:::ahmad-*/*"]}]}
+#   - groups (RUSTFS_IDENTITY_OPENID_GROUPS_CLAIM): the policy named after each group (a GitLab group, a Forgejo
+#     organisation) gives the group's buckets: the same bucket and object statements on "<group>" and "<group>-*".
+# RustFS combines both in one login; a group without a policy is ignored. The policies are created by an admin or a
+# job that follows the provider's users and groups. Without its policy a user gets no access at all.
+# A provider on a private address (inside the cluster) also needs RUSTFS_OUTBOUND_ALLOW_ORIGINS set to its origin
+# (scheme://host:port, no path): RustFS refuses outbound requests to private addresses otherwise.
+# Users who approved the OAuth2 application before the groups scope was requested get no groups claim until they
+# revoke that approval once in the provider (the provider reuses the old approval silently).
 app-host = "{{app.name}}"
 app-port = "9000"
 app-stateful = true
@@ -136,7 +146,7 @@ prov-app-ha-topology = "failover"
     locked = false
     name = "RUSTFS_IDENTITY_OPENID_SCOPES"
     type = "env"
-    value = "openid,profile,email"
+    value = "profile,email,groups"
 
   [[deployment.variables]]
     locked = false
@@ -152,9 +162,15 @@ prov-app-ha-topology = "failover"
 
   [[deployment.variables]]
     locked = false
-    name = "RUSTFS_IDENTITY_OPENID_ROLE_POLICY"
+    name = "RUSTFS_IDENTITY_OPENID_CLAIM_NAME"
     type = "env"
-    value = "repman-sso"
+    value = "sub"
+
+  [[deployment.variables]]
+    locked = false
+    name = "RUSTFS_IDENTITY_OPENID_GROUPS_CLAIM"
+    type = "env"
+    value = "groups"
 
   [[deployment.variables]]
     locked = false
