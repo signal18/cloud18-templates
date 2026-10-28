@@ -24,6 +24,11 @@
 # only the cluster's users holding cluster-show-routes in replication-manager get in (the
 # sync reads them every SYNC_INTERVAL), and Kuma's own login is off. Without the secret,
 # Kuma's own login (KUMA_ADMIN_USER / KUMA_ADMIN_PASSWORD) guards the page.
+#
+# Status page: with STATUS_PAGE_SLUG set (letters, digits, dashes; empty = none), the sync keeps
+# a read-only Kuma status page of its monitors (applications, databases, proxies) titled
+# STATUS_PAGE_TITLE. Behind the SSO only that page's data stays open (monitor names and up/down,
+# no address), so a page elsewhere (the Cloud18 members zone) can show it.
 app-host = "{{app.name}}"
 app-port = "3001"
 app-db-auto-create = true
@@ -157,3 +162,13 @@ prov-app-memory = "{{config.provAppMemory}}"
     name = "SYNC_INTERVAL"
     type = "env"
     value = "60"
+  [[deployment.variables]]
+    locked = false
+    name = "STATUS_PAGE_SLUG"
+    type = "env"
+    value = ""
+  [[deployment.variables]]
+    locked = false
+    name = "STATUS_PAGE_TITLE"
+    type = "env"
+    value = ""
