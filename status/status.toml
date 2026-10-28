@@ -29,6 +29,10 @@
 # a read-only Kuma status page of its monitors (applications, databases, proxies) titled
 # STATUS_PAGE_TITLE. Behind the SSO only that page's data stays open (monitor names and up/down,
 # no address), so a page elsewhere (the Cloud18 members zone) can show it.
+#
+# External monitors: EXTERNAL_MONITORS ("name|https://url;name|url", empty = none) adds one http
+# check per address outside the cluster (certificate verified), grouped as Partner consoles on
+# the status page.
 app-host = "{{app.name}}"
 app-port = "3001"
 app-db-auto-create = true
@@ -170,5 +174,10 @@ prov-app-memory = "{{config.provAppMemory}}"
   [[deployment.variables]]
     locked = false
     name = "STATUS_PAGE_TITLE"
+    type = "env"
+    value = ""
+  [[deployment.variables]]
+    locked = false
+    name = "EXTERNAL_MONITORS"
     type = "env"
     value = ""
