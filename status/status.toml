@@ -26,8 +26,8 @@
 # Kuma's own login (KUMA_ADMIN_USER / KUMA_ADMIN_PASSWORD) guards the page.
 #
 # Status page: with STATUS_PAGE_SLUG set (letters, digits, dashes; empty = none), the sync keeps
-# a read-only Kuma status page of its monitors (applications, databases, proxies) titled
-# STATUS_PAGE_TITLE. Behind the SSO only that page's data stays open (monitor names and up/down,
+# a read-only Kuma status page titled STATUS_PAGE_TITLE. Kuma owns its groups (edited in Kuma):
+# the sync only places a monitor that is in no group, in its kind's default group. Behind the SSO only that page's data stays open (monitor names and up/down,
 # no address), so a page elsewhere (the Cloud18 members zone) can show it.
 #
 # External monitors: EXTERNAL_MONITORS ("name|https://url;name|url", empty = none) adds one http
