@@ -1,0 +1,82 @@
+# Mattermost Team Edition on a PostgreSQL that is itself an app of the cluster
+# (a namespace with a "pg1" postgres app, no proxy, no monitored primary).
+# replication-manager creates no database here: the database and its login role
+# (both named mattermost) exist on pg1 before the app is added, and the password is
+# set in MM_SQLSETTINGS_DATASOURCE through the app's variables (secret) after the add.
+app-host = "{{app.name}}"
+app-port = "8065"
+app-db-auto-create = false
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "mattermost/mattermost-team-edition:release-11"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+[deployment]
+  [deployment.Mutex]
+  [[deployment.paths]]
+    dockerpath = "/mattermost/data"
+    level = 0
+    name = "path-volume-mattermost-data"
+    parentname = ""
+    srcname = "mattermost-data"
+    srcpath = "data/"
+    srctype = "volume"
+    volumename = "mattermost-data"
+  [[deployment.paths]]
+    dockerpath = "/mattermost/config"
+    level = 0
+    name = "path-volume-mattermost-config"
+    parentname = ""
+    srcname = "mattermost-data"
+    srcpath = "config/"
+    srctype = "volume"
+    volumename = "mattermost-data"
+  [[deployment.paths]]
+    dockerpath = "/mattermost/plugins"
+    level = 0
+    name = "path-volume-mattermost-plugins"
+    parentname = ""
+    srcname = "mattermost-data"
+    srcpath = "plugins/"
+    srctype = "volume"
+    volumename = "mattermost-data"
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "mattermost-data"
+      # the image runs as user mattermost (2000): the volume directories must be its own,
+      # or config.json cannot be written ("permission denied", pg-active-passive 2026-10-07)
+      user = "2000"
+      group = "2000"
+      poolname = "drbd"
+      volumedir = "data"
+  [[deployment.variables]]
+    locked = true
+    name = "MM_SQLSETTINGS_DRIVERNAME"
+    type = "env"
+    value = "postgres"
+  [[deployment.variables]]
+    locked = false
+    name = "MM_SQLSETTINGS_DATASOURCE"
+    type = "secret"
+    value = "postgres://mattermost:SET_AFTER_ADD@{{apps.#(name==pg1).host}}:5432/mattermost?sslmode=disable&connect_timeout=10"
+  [[deployment.variables]]
+    locked = false
+    name = "MM_SERVICESETTINGS_SITEURL"
+    type = "env"
+    value = "https://{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+  [[deployment.variables]]
+    locked = true
+    name = "MM_SERVICESETTINGS_LISTENADDRESS"
+    type = "env"
+    value = ":8065"
+  [[deployment.variables]]
+    locked = true
+    name = "TZ"
+    type = "env"
+    value = "UTC"
