@@ -1,0 +1,56 @@
+# GitLab sign-in for the clients of a Mattermost v11 Team Edition app of the cluster (named
+# mattermost). v11 Team still signs users in with GitLab but no longer announces it in its client
+# config, so the web page, the desktop app and the mobile app show no GitLab button. This nginx
+# adds EnableSignUpWithGitLab to /api/v4/config/client and passes everything else (websocket
+# included) to Mattermost. Put the public routes of Mattermost on this app, not on the
+# Mattermost app. Remove this app to go back: the route goes back to the Mattermost app.
+app-host = "{{app.name}}"
+app-port = "80"
+app-db-auto-create = false
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "nginx:1.29-alpine"
+prov-app-ha-topology = "flex"
+prov-app-memory = "{{config.provAppMemory}}"
+[deployment]
+  [deployment.Mutex]
+  [[deployment.paths]]
+    # the nginx image renders /etc/nginx/templates/*.template into conf.d with envsubst
+    dockerpath = "/etc/nginx/templates/default.conf.template"
+    level = 0
+    name = "path-git-cloud18-git-sample-config"
+    parentname = ""
+    srcname = "cloud18-git-sample-config"
+    srcpath = "etc/cloud18-git-sample-config/mattermost/gitlab-proxy.conf.template"
+    srctype = "git"
+    volumename = "local-config-directory"
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+  [deployment.storages]
+    [[deployment.storages.git-clones]]
+      branch = "main"
+      name = "cloud18-git-sample-config"
+      pass = ""
+      repo = "github.com/signal18/cloud18-template-config.git"
+      timeout = 0
+      user = ""
+      volumedir = "etc/cloud18-git-sample-config"
+      volumename = "local-config-directory"
+    [[deployment.storages.volumes]]
+      name = "local-config-directory"
+      poolname = "tank"
+      volumedir = "etc"
+  [[deployment.variables]]
+    locked = false
+    name = "MATTERMOST_UPSTREAM"
+    type = "env"
+    value = "{{apps.#(name==mattermost).host}}:8065"
+  [[deployment.variables]]
+    locked = true
+    name = "TZ"
+    type = "env"
+    value = "UTC"
