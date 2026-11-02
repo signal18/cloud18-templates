@@ -50,6 +50,12 @@ prov-app-memory = "{{config.provAppMemory}}"
     type = "env"
     value = "{{apps.#(name==mattermost).host}}:8065"
   [[deployment.variables]]
+    # the image writes the container's DNS servers to NGINX_LOCAL_RESOLVERS for the resolver line
+    locked = true
+    name = "NGINX_ENTRYPOINT_LOCAL_RESOLVERS"
+    type = "env"
+    value = "1"
+  [[deployment.variables]]
     locked = true
     name = "TZ"
     type = "env"
