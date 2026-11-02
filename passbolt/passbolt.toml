@@ -1,0 +1,150 @@
+# Passbolt CE, the open source password manager, on a MariaDB or MySQL cluster of replication-manager. One instance,
+# failover topology, NO volume: the database and its user are created by the cluster at provision (app.db.* keys,
+# app-db-auto-create) and Passbolt creates its tables at first start (the entrypoint runs the migrations).
+#
+# The files Passbolt keeps outside the database are kept as app secrets and written at every start, so the container
+# stays disposable: the server GPG key pair (users pin its fingerprint, it must never change) and the JWT key pair.
+# Generate them once and put them in PASSBOLT_GPG_PRIVATE_B64 / PASSBOLT_GPG_PUBLIC_B64 / PASSBOLT_JWT_KEY_B64 /
+# PASSBOLT_JWT_PEM_B64 (base64 -w0 of the files), PASSBOLT_GPG_FINGERPRINT = the key fingerprint, no passphrase.
+# Without them the entrypoint would generate new keys at each start. Avatars (webroot/img/public) are not kept.
+#
+# The non-root image serves plain HTTP on 8080: the gateway terminates TLS. APP_FULL_BASE_URL must be the exact
+# public https URL (set it to the public name added as a route once DNS points to the gateway).
+# Passbolt cannot send its registration / recovery emails without SMTP: set the EMAIL_* variables. (Brevo relay: smtp-relay.brevo.com:587 STARTTLS, user and SMTP key from the Brevo account)
+# First admin: docker exec <container> su -s /bin/bash -c "/usr/share/php/passbolt/bin/cake passbolt register_user -u <email> -f <first> -l <last> -r admin" www-data
+app-host = "{{app.name}}"
+app-port = "8080"
+app-db-auto-create = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "passbolt/passbolt:5.17.0-1-ce-non-root"
+prov-app-docker-cmd = "bash -c \"mkdir -p /etc/passbolt/gpg /etc/passbolt/jwt && printenv PASSBOLT_GPG_PRIVATE_B64 | base64 -d > /etc/passbolt/gpg/serverkey_private.asc && printenv PASSBOLT_GPG_PUBLIC_B64 | base64 -d > /etc/passbolt/gpg/serverkey.asc && printenv PASSBOLT_JWT_KEY_B64 | base64 -d > /etc/passbolt/jwt/jwt.key && printenv PASSBOLT_JWT_PEM_B64 | base64 -d > /etc/passbolt/jwt/jwt.pem && chmod 640 /etc/passbolt/jwt/jwt.key && exec /usr/bin/wait-for.sh -t 0 $DATASOURCES_DEFAULT_HOST:$DATASOURCES_DEFAULT_PORT -- /docker-entrypoint.sh\""
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+    [deployment.routes.monitor]
+      path = "/healthcheck/status.json"
+      expect-status = "200"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DATASOURCES_DEFAULT_HOST"
+    type = "env"
+    value = "{{proxies.0.name}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DATASOURCES_DEFAULT_PORT"
+    type = "env"
+    value = "{{proxies.0.writePort}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DATASOURCES_DEFAULT_DATABASE"
+    type = "env"
+    value = "{{app.db.schema}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DATASOURCES_DEFAULT_USERNAME"
+    type = "env"
+    value = "{{app.db.user}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "DATASOURCES_DEFAULT_PASSWORD"
+    type = "secret"
+    value = "{{app.db.password}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "APP_FULL_BASE_URL"
+    type = "env"
+    value = "https://{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+
+  [[deployment.variables]]
+    locked = false
+    name = "PASSBOLT_GPG_SERVER_KEY_FINGERPRINT"
+    type = "env"
+    value = "change-me-gpg-fingerprint"
+
+  [[deployment.variables]]
+    locked = false
+    name = "PASSBOLT_GPG_PRIVATE_B64"
+    type = "secret"
+    value = "change-me"
+
+  [[deployment.variables]]
+    locked = false
+    name = "PASSBOLT_GPG_PUBLIC_B64"
+    type = "secret"
+    value = "change-me"
+
+  [[deployment.variables]]
+    locked = false
+    name = "PASSBOLT_JWT_KEY_B64"
+    type = "secret"
+    value = "change-me"
+
+  [[deployment.variables]]
+    locked = false
+    name = "PASSBOLT_JWT_PEM_B64"
+    type = "secret"
+    value = "change-me"
+
+  [[deployment.variables]]
+    locked = false
+    name = "PASSBOLT_SECURITY_SALT"
+    type = "secret"
+    value = "change-me"
+
+  [[deployment.variables]]
+    locked = false
+    name = "PASSBOLT_JWT_ENABLED"
+    type = "env"
+    value = "true"
+
+  [[deployment.variables]]
+    locked = false
+    name = "EMAIL_TRANSPORT_DEFAULT_HOST"
+    type = "env"
+    value = "smtp-relay.brevo.com"
+
+  [[deployment.variables]]
+    locked = false
+    name = "EMAIL_TRANSPORT_DEFAULT_PORT"
+    type = "env"
+    value = "587"
+
+  [[deployment.variables]]
+    locked = false
+    name = "EMAIL_TRANSPORT_DEFAULT_USERNAME"
+    type = "env"
+    value = "change-me"
+
+  [[deployment.variables]]
+    locked = false
+    name = "EMAIL_TRANSPORT_DEFAULT_PASSWORD"
+    type = "secret"
+    value = "change-me"
+
+  [[deployment.variables]]
+    locked = false
+    name = "EMAIL_TRANSPORT_DEFAULT_TLS"
+    type = "env"
+    value = "true"
+
+  [[deployment.variables]]
+    locked = false
+    name = "EMAIL_DEFAULT_FROM"
+    type = "env"
+    value = "passbolt@signal18.io"
