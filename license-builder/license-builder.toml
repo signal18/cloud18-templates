@@ -1,0 +1,109 @@
+# Cloud18 licence-builder (replication-manager #2309): a dev-image replication-manager that builds,
+# signs, tests and keeps the licence package of a client seat. It runs the regular dev monitor AND
+# `license-builder` beside it — "double usage": that one monitor is also the builder's own
+# license-pull test target (LICENSE_BUILDER_MONITOR_URL, loopback). The replication-manager source is
+# cloned from git by an init container and built at start by
+# docker/dev/start_licence_builder.sh (run.sh builds + starts the monitor in the background, then
+# execs `license-builder`). Point the git clone at your own replication-manager repo/branch.
+#
+# The signer credentials (PLUGIN_SIGNER_USER / PLUGIN_SIGNER_TOKEN, used by `make plugins` to fetch
+# the Signal18 signing key) and the monitor password are SECRETS provided at add time and encrypted
+# with the local key — never written in this template, never put in a dev environment. The monitor it
+# runs beside must keep git-url-pull empty, or license-pull refuses.
+# See doc/implementation/licensebuilder/LICENSE_BUILDER.md.
+app-host = "{{app.name}}"
+app-port = "10010"
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "signal18/replication-manager:dev"
+prov-app-docker-cmd = "bash /go/src/github.com/signal18/replication-manager/docker/dev/start_licence_builder.sh"
+prov-app-ha-topology = "flex"
+prov-app-memory = "{{config.provAppMemory}}"
+prov-app-start-timeout = "20m"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.paths]]
+    name = "path-git-license-builder-src"
+    level = 0
+    parentname = ""
+    dockerpath = "/go/src/github.com/signal18/replication-manager/"
+    srctype = "git"
+    srcname = "license-builder-src"
+    srcpath = "var/license-builder-src/"
+    volumename = "local-data-directory"
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+    [deployment.routes.monitor]
+      path = "/queue"
+      expect-status = "401"
+
+  [deployment.storages]
+    [[deployment.storages.git-clones]]
+      name = "license-builder-src"
+      repo = "github.com/signal18/replication-manager.git"
+      branch = "develop"
+      user = ""
+      pass = ""
+      timeout = 0
+      volumedir = "var/license-builder-src"
+      volumename = "local-data-directory"
+
+    [[deployment.storages.volumes]]
+      name = "local-data-directory"
+      poolname = "tank"
+      volumedir = "var"
+
+  [[deployment.variables]]
+    locked = false
+    name = "PLUGIN_SIGNER_USER"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "PLUGIN_SIGNER_TOKEN"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "LICENSE_BUILDER_MONITOR_PASSWORD"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = true
+    name = "LICENSE_BUILDER_MONITOR_URL"
+    type = "env"
+    value = "https://127.0.0.1:10005"
+
+  [[deployment.variables]]
+    locked = false
+    name = "LICENSE_BUILDER_MONITOR_USER"
+    type = "env"
+    value = "admin"
+
+  [[deployment.variables]]
+    locked = false
+    name = "LICENSE_BUILDER_ISSUER_URL"
+    type = "env"
+    value = "https://identity.cloud18.io/realms/cloud18"
+
+  [[deployment.variables]]
+    locked = false
+    name = "LICENSE_BUILDER_ALLOWED_CLIENTS"
+    type = "env"
+    value = "cloud18-crm"
+
+  [[deployment.variables]]
+    locked = true
+    name = "LICENSE_BUILDER_ADDR"
+    type = "env"
+    value = ":10010"
