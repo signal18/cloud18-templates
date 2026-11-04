@@ -18,7 +18,7 @@ prov-app-cpu-cores = "{{config.provAppCpuCores}}"
 prov-app-disk-size = "{{config.provAppDiskSize}}"
 prov-app-docker-img = "signal18/replication-manager:dev"
 prov-app-docker-cmd = "bash /go/src/github.com/signal18/replication-manager/docker/dev/start_licence_builder.sh"
-prov-app-ha-topology = "flex"
+prov-app-ha-topology = "failover"
 prov-app-memory = "{{config.provAppMemory}}"
 prov-app-start-timeout = "20m"
 
