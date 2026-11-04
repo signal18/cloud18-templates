@@ -107,3 +107,11 @@ prov-app-start-timeout = "20m"
     name = "LICENSE_BUILDER_ADDR"
     type = "env"
     value = ":10010"
+
+  # The beside-monitor orchestrates nothing; keep it off OpenSVC so it does not try to load
+  # the OpenSVC cluster certificate (/etc/replication-manager/s18.p12) and fatal at start.
+  [[deployment.variables]]
+    locked = true
+    name = "REPLICATION_MANAGER_PROV_ORCHESTRATOR"
+    type = "env"
+    value = "local"
