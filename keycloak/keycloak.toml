@@ -26,6 +26,16 @@ prov-app-memory = "{{config.provAppMemory}}"
 [deployment]
   [deployment.Mutex]
 
+  [[deployment.paths]]
+    dockerpath = "/opt/keycloak/providers"
+    level = 0
+    name = "path-volume-keycloak-providers"
+    parentname = ""
+    srcname = "keycloak-data"
+    srcpath = "providers/"
+    srctype = "volume"
+    volumename = "keycloak-data"
+
   [[deployment.routes]]
     cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
     port = "{{app.port}}"
@@ -34,6 +44,12 @@ prov-app-memory = "{{config.provAppMemory}}"
     [deployment.routes.monitor]
       path = "/realms/master"
       expect-status = "200"
+
+  [deployment.storages]
+    [[deployment.storages.volumes]]
+      name = "keycloak-data"
+      poolname = "drbd"
+      volumedir = "data"
 
   [[deployment.variables]]
     locked = true
