@@ -78,6 +78,29 @@ prov-app-start-timeout = "20m"
     type = "secret"
     value = ""
 
+  # Online -pull delivery: the signed plugin-licence is pushed into the client's
+  # <domain>/<subdomain>-<zone>-pull repo on GitLab. GIT_TOKEN is a GitLab token with push to those
+  # repos (the same identity that pushes the config repos) — a SECRET provided at add time, encrypted
+  # with the local key, never in this template (F9), carried in an Authorization header, never a URL
+  # (F10). Without it, online delivery fails with "-pull delivery not configured".
+  [[deployment.variables]]
+    locked = false
+    name = "LICENSE_BUILDER_GIT_TOKEN"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "LICENSE_BUILDER_GIT_USER"
+    type = "env"
+    value = "oauth2"
+
+  [[deployment.variables]]
+    locked = false
+    name = "LICENSE_BUILDER_GIT_BASE_URL"
+    type = "env"
+    value = "https://gitlab.signal18.io"
+
   [[deployment.variables]]
     locked = true
     name = "LICENSE_BUILDER_MONITOR_URL"
