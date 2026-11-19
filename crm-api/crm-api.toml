@@ -1,0 +1,332 @@
+# Signal18 CRM API (repository crm-api): the PHP service behind the Cloud18 marketplace (sign-up, members,
+# subscriptions, quotes, licences, integrations). One instance, failover topology on a DRBD volume: the
+# code, its nginx site and its PHP-FPM pool are cloned from the crm-api repository by an init container
+# and mounted in place; the logs live on the volume. The crm-api repository is private: set the clone
+# credentials at add time (git-clones user/pass, the pass is a secret encrypted with the local key),
+# never in this template.
+#
+# Database: the CRM never connects as root. Its schema, user and password are created by the cluster at
+# provision (app.db.* keys, app-db-auto-create), granted on that schema only, never on an existing schema
+# or user; the CRM applies its own migrations (etc/migrations, CREATE/ALTER/DML on its schema, nothing
+# global). The CRM also READS the back office's tables (schema CRM_BO_SCHEMA, default bo, the `bo` app of
+# the same cluster: users, clusters, placement, credential registry): that read grant is not covered by
+# the app database feature yet, so a deployment that runs the back office gives this user SELECT on that
+# schema, or the CRM is given the bo app's credentials through the linked-app keys
+# ({{apps.#(name==bo).db.*}}) once it reads the back office through its own connection.
+#
+# Every token, key and password below is a SECRET provided at add time (empty here), encrypted with the
+# local key, pushed to the app's OpenSVC secret and read by the CRM from its environment. The env values
+# are plain defaults to adjust after the add (identity provider client ids, ERP and chat URLs, SMTP relay,
+# sales notification addresses). The route monitor reads /api/health (200).
+app-host = "{{app.name}}"
+app-port = "80"
+app-db-auto-create = true
+prov-app-agents = "{{config.provAppAgents}}"
+prov-app-cpu-cores = "{{config.provAppCpuCores}}"
+prov-app-disk-size = "{{config.provAppDiskSize}}"
+prov-app-docker-img = "signal18/front-php:8.4.27"
+prov-app-ha-topology = "failover"
+prov-app-memory = "{{config.provAppMemory}}"
+
+[deployment]
+  [deployment.Mutex]
+
+  [[deployment.paths]]
+    dockerpath = "/etc/nginx/sites-available/default"
+    level = 0
+    name = "path-git-crm-api"
+    parentname = ""
+    srcname = "crm-api"
+    srcpath = "var/crm-api/etc/nginx.cnf"
+    srctype = "git"
+    volumename = "crm-api-data"
+
+  [[deployment.paths]]
+    dockerpath = "/etc/php/8.4/fpm/pool.d/www.conf"
+    level = 0
+    name = "path-git-crm-api"
+    parentname = ""
+    srcname = "crm-api"
+    srcpath = "var/crm-api/etc/crm.pool.conf"
+    srctype = "git"
+    volumename = "crm-api-data"
+
+  [[deployment.paths]]
+    dockerpath = "/var/www/crm"
+    level = 0
+    name = "path-git-crm-api"
+    parentname = ""
+    srcname = "crm-api"
+    srcpath = "var/crm-api/www/"
+    srctype = "git"
+    volumename = "crm-api-data"
+
+  [[deployment.paths]]
+    dockerpath = "/var/www/scripts"
+    level = 0
+    name = "path-git-crm-api"
+    parentname = ""
+    srcname = "crm-api"
+    srcpath = "var/crm-api/scripts/"
+    srctype = "git"
+    volumename = "crm-api-data"
+
+  [[deployment.paths]]
+    dockerpath = "/var/www/logs"
+    level = 0
+    name = "path-volume-crm-api-logs"
+    parentname = ""
+    srcname = "crm-api-data"
+    srcpath = "var/crm-api-logs/"
+    srctype = "volume"
+    volumename = "crm-api-data"
+
+  [[deployment.routes]]
+    cname = "{{app.name}}.{{name}}.{{config.cloud18SubDomain}}-{{config.cloud18SubDomainZone}}.{{config.cloud18Domain}}.cloud18.io"
+    port = "{{app.port}}"
+    primary = true
+    protocol = "https"
+    [deployment.routes.monitor]
+      path = "/api/health"
+      expect-status = "200"
+
+  [deployment.storages]
+    [[deployment.storages.git-clones]]
+      branch = "master"
+      name = "crm-api"
+      pass = ""
+      repo = "github.com/signal18/crm-api"
+      timeout = 0
+      user = ""
+      volumedir = "var/crm-api"
+      volumename = "crm-api-data"
+
+    [[deployment.storages.volumes]]
+      name = "crm-api-data"
+      poolname = "drbd"
+      volumedir = "var"
+
+  # Database: the cluster's proxy, the schema, user and password the cluster created for this app.
+  [[deployment.variables]]
+    locked = false
+    name = "CRM_MYSQL_HOST"
+    type = "env"
+    value = "{{proxies.0.name}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "CRM_MYSQL_PORT"
+    type = "env"
+    value = "{{proxies.0.writePort}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "CRM_MYSQL_DATABASE"
+    type = "env"
+    value = "{{app.db.schema}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "CRM_MYSQL_USER"
+    type = "env"
+    value = "{{app.db.user}}"
+
+  [[deployment.variables]]
+    locked = false
+    name = "CRM_MYSQL_PASSWORD"
+    type = "secret"
+    value = "{{app.db.password}}"
+
+  # The back office's schema the CRM reads (see the header).
+  [[deployment.variables]]
+    locked = false
+    name = "CRM_BO_SCHEMA"
+    type = "env"
+    value = "bo"
+
+  # Source forge (GitLab) the marketplace provisions groups and projects on.
+  [[deployment.variables]]
+    locked = false
+    name = "GITLAB_URL"
+    type = "env"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "GITLAB_ADMIN_TOKEN"
+    type = "secret"
+    value = ""
+
+  # Identity provider (Keycloak): the sign-up client, the login client, the admin client.
+  [[deployment.variables]]
+    locked = false
+    name = "KEYCLOAK_SIGNUP_CLIENT_ID"
+    type = "env"
+    value = "crm-signup"
+
+  [[deployment.variables]]
+    locked = false
+    name = "KEYCLOAK_SIGNUP_CLIENT_SECRET"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "KEYCLOAK_LOGIN_CLIENT_ID"
+    type = "env"
+    value = "cloud18-crm"
+
+  [[deployment.variables]]
+    locked = false
+    name = "KEYCLOAK_LOGIN_CLIENT_SECRET"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "KEYCLOAK_ADMIN_CLIENT_ID"
+    type = "env"
+    value = "crm-signup"
+
+  [[deployment.variables]]
+    locked = false
+    name = "KEYCLOAK_ADMIN_CLIENT_SECRET"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "KEYCLOAK_ALLOWED_CLIENTS"
+    type = "env"
+    value = "cloud18-crm"
+
+  # ERP (Dolibarr): billing and contracts source of truth. URL seen by the CRM, public URL put in mails.
+  [[deployment.variables]]
+    locked = false
+    name = "DOLIBARR_URL"
+    type = "env"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLIBARR_PUBLIC_URL"
+    type = "env"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLIBARR_API_KEY"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLIBARR_WEBHOOK_SECRET"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "DOLIBARR_ASSISTANT_API_KEY"
+    type = "secret"
+    value = ""
+
+  # Team chat (Mattermost): sign-up alerts and member accounts.
+  [[deployment.variables]]
+    locked = false
+    name = "MATTERMOST_BASE_URL"
+    type = "env"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "MATTERMOST_WEBHOOK_URL"
+    type = "env"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "MATTERMOST_ADMIN_TOKEN"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "MATTERMOST_TEAM_SLUG"
+    type = "env"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "MATTERMOST_DEV_CHANNEL"
+    type = "env"
+    value = ""
+
+  # Mail relay for the quotes, statements and sign-up mails.
+  [[deployment.variables]]
+    locked = false
+    name = "SMTP_HOST"
+    type = "env"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "SMTP_PORT"
+    type = "env"
+    value = "587"
+
+  [[deployment.variables]]
+    locked = false
+    name = "SMTP_USER"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "SMTP_PASSWORD"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "MAIL_FROM"
+    type = "env"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "SALES_QUOTE_NOTIFY_TO"
+    type = "env"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "SALES_ASSISTANT_TOKEN"
+    type = "secret"
+    value = ""
+
+  # Licences: the offline-licence signing key and the licence-builder app of the same cluster.
+  [[deployment.variables]]
+    locked = false
+    name = "PLUGIN_SIGNING_PRIVATE_KEY_B64"
+    type = "secret"
+    value = ""
+
+  [[deployment.variables]]
+    locked = false
+    name = "LICENSE_BUILDER_URL"
+    type = "env"
+    value = "http://license-builder.{{name}}.svc.cloud18:10010"
+
+  [[deployment.variables]]
+    locked = false
+    name = "ARCHIVE_OFFER_SECRET_KEY"
+    type = "secret"
+    value = ""
+
+  # Log platform (Graylog) read by the member cluster-logs page.
+  [[deployment.variables]]
+    locked = false
+    name = "GRAYLOG_API_TOKEN"
+    type = "secret"
+    value = ""
