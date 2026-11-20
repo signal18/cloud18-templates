@@ -13,6 +13,18 @@ prov-app-disk-size = "{{config.provAppDiskSize}}"
 prov-app-docker-img = "signal18/php-fpm-84:v4"
 prov-app-ha-topology = "flex"
 prov-app-memory = "{{config.provAppMemory}}"
+# PHP sizing that follows the plan: replication-manager computes the php-fpm pool
+# (pm.max_children = (memory - reserved - opcache) / worker memory, at most 8 per core),
+# memory_limit and the opcache from the app memory and cores, installs them as
+# zzz-repman-sizing.conf / .ini in the image's directories, and reloads php-fpm gracefully
+# (USR2, no restart) on each resize. The image runs nginx next to php-fpm: 128 MB is kept
+# out of the pool for it and the master. Off: prov-app-apply-dynamic-config = false.
+prov-app-apply-dynamic-config = true
+prov-app-php-fpm-pool-dir = "/etc/php/8.4/fpm/pool.d"
+prov-app-php-ini-dir = "/etc/php/8.4/fpm/conf.d"
+prov-app-php-fpm-pool = "www"
+prov-app-php-process-memory = "64"
+prov-app-php-reserved-memory = "128"
 [deployment]
   [deployment.Mutex]
   [[deployment.paths]]
