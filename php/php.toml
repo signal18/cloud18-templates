@@ -11,6 +11,12 @@ prov-app-agents = "{{config.provAppAgents}}"
 prov-app-cpu-cores = "{{config.provAppCpuCores}}"
 prov-app-disk-size = "{{config.provAppDiskSize}}"
 prov-app-docker-img = "signal18/php-fpm-84:v4"
+# PHP sizing from the plan: the php configurator ruleset (collector export
+# moduleset_php.svc.mrm.db.json) writes the php-fpm pool and php.ini fragments sized from the
+# app memory and cores; the start runs it before the services. With prov-app-dynamic-resource
+# a resize re-renders it and APP_RELOAD_COMMAND reloads php-fpm (USR2) without a restart.
+prov-app-configurator = "php"
+prov-app-docker-cmd = "bash -c 'printenv APP_CONFIGURATOR_SCRIPT | sh; exec bash /start.sh'"
 prov-app-ha-topology = "flex"
 prov-app-memory = "{{config.provAppMemory}}"
 [deployment]
@@ -99,3 +105,8 @@ prov-app-memory = "{{config.provAppMemory}}"
     name = "DB_PASSWORD"
     type = "secret"
     value = "{{app.db.password}}"
+  [[deployment.variables]]
+    locked = true
+    name = "APP_RELOAD_COMMAND"
+    type = "env"
+    value = '''R=/proc/1/root; P=$(cat $R/run/php/php8.4-fpm.pid) && printenv APP_CONFIGURATOR_SCRIPT | sed "s#'/#'$R/#g" | sh && kill -USR2 $P && echo "php-fpm $P reloaded: $(grep max_children $R/etc/php/8.4/fpm/pool.d/zzz-cloud18-sizing.conf)"'''
